@@ -2,29 +2,29 @@
 
 ## Cursor Cloud specific instructions
 
-This is a **pnpm monorepo** (pnpm v10, Node >= 20) for the 雷檬云 diabetes management platform.
+### Project Overview
 
-### Workspace structure
+雷檬云 (LeiMengYun) is a diabetes health management platform with three services:
 
-| Package | Description |
-|---|---|
-| `apps/server` | NestJS backend (port 3000) |
-| `apps/patient-h5` | Vue 3 + Vite + Vant 4 patient mobile web (port 5173) |
-| `apps/doctor-h5` | Vue 3 + Vite + Vant 4 doctor mobile web (port 5174) |
-| `packages/shared` | Shared types and utilities |
+| Service | Port | Directory | Command |
+|---|---|---|---|
+| Backend API | 3000 | `apps/server` | `pnpm dev:server` |
+| Patient H5 | 5173 | `apps/patient-h5` | `pnpm dev:patient` |
+| Doctor H5 | 5174 | `apps/doctor-h5` | `pnpm --filter @leimengyun/doctor-h5 dev` |
 
-### Key commands
+### Infrastructure
 
-- **Install deps:** `pnpm install` (from repo root)
-- **Dev all:** `pnpm dev` (starts all apps in parallel)
-- **Dev patient-h5 only:** `pnpm dev:patient`
-- **Dev doctor-h5 only:** `pnpm dev:doctor`
-- **Dev server only:** `pnpm dev:server`
-- **Lint:** `pnpm lint`
-- **Build patient-h5:** `pnpm --filter @leimengyun/patient-h5 build`
+- **Database**: PostgreSQL 16 via Docker Compose (`docker compose up -d`)
+- **Cache**: Redis 7 via Docker Compose
+- **Connection**: `postgresql://leimengyun:leimengyun123@localhost:5432/leimengyun`
 
-### Caveats
+### Key Development Notes
 
-- The ESLint config (`eslint.config.js`) does not configure `@typescript-eslint/parser` for `.vue` files' `<script>` blocks. This causes parsing errors on inline TypeScript annotations in Vue templates (e.g., `(a:any)=>`). This is a pre-existing issue across both `doctor-h5` and `patient-h5`.
-- Vite dev server ports may auto-increment if the default port is in use (5173 -> 5174 -> 5175, etc.).
-- The `patient-h5` and `doctor-h5` apps proxy `/api` requests to `http://localhost:3000` (the NestJS server). The frontend apps work standalone with mock data for UI development but need the server running for API calls.
+- **Docker must be running** before starting the backend. Use `sudo dockerd &` if the daemon isn't started, then `docker compose up -d`.
+- **Prisma migrations**: Run `cd apps/server && npx prisma migrate dev` after schema changes.
+- **Prisma client**: Run `cd apps/server && npx prisma generate` after pulling schema changes.
+- **Backend TypeScript**: The server `tsconfig.json` has `incremental: false` due to a stale-cache issue with NestJS watch mode. Do not re-enable it.
+- **Swagger docs** are available at `http://localhost:3000/api/docs` when the backend is running.
+- **Auth for dev**: The login API accepts any 6-digit code (e.g. `123456`) and auto-creates users.
+- **All services** can be started simultaneously with `pnpm dev` from the workspace root.
+- **Frontend proxy**: Both Vue3 apps proxy `/api` requests to `localhost:3000` via Vite config.
