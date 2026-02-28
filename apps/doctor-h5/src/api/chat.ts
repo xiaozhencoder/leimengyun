@@ -4,17 +4,14 @@ export function getConversations() {
   return client.get('/chat/conversations')
 }
 
-export function getMessages(conversationId: string, params?: { before?: string; limit?: number }) {
-  return client.get(`/chat/conversations/${conversationId}/messages`, { params })
+export function getMessages(conversationId: string) {
+  return client.get(`/chat/conversations/${conversationId}/messages`)
 }
 
 export function sendMessage(conversationId: string, content: string, contentType = 'TEXT') {
-  return client.post(`/chat/conversations/${conversationId}/messages`, {
-    content,
-    contentType,
-  })
+  return client.post('/chat/messages', { conversationId, content, contentType })
 }
 
-export function createConversation(patientId: string) {
-  return client.post('/chat/conversations', { targetUserId: patientId })
+export function markRead(conversationId: string) {
+  return client.put(`/chat/conversations/${conversationId}/read`)
 }

@@ -2,40 +2,92 @@
   <div class="patients-page">
     <van-nav-bar title="我的患者" />
     <van-search v-model="search" placeholder="搜索患者姓名" />
-    <van-cell-group inset>
-      <div class="stats-grid">
-        <div class="stat-item"><span class="stat-value" style="color:#3B82F6;">28</span><span class="stat-label">管理患者</span></div>
-        <div class="stat-item"><span class="stat-value" style="color:#FFB020;">5</span><span class="stat-label">今日异常</span></div>
-        <div class="stat-item"><span class="stat-value" style="color:#FF4D4F;">2</span><span class="stat-label">待处理</span></div>
-      </div>
-    </van-cell-group>
-    <van-cell-group inset title="全部患者" style="margin-top:12px;">
-      <van-cell v-for="p in patients" :key="p.id" :title="p.name" :label="p.info" is-link @click="$router.push('/patient/' + p.id)">
-        <template #value>
-          <span :style="{ color: p.color, fontWeight: 700 }">{{ p.avgBs }}</span>
+
+    <van-cell-group v-if="pendingBinds.length" inset title="待审核" style="margin-top: 12px">
+      <van-cell v-for="b in pendingBinds" :key="b.bindId" :title="b.nickname" :label="formatDiabetes(b.diabetesType)">
+        <template #right-icon>
+          <div style="display: flex; gap: 8px;">
+            <van-button size="small" type="primary" :loading="approvingId === b.bindId" @click.stop="handleApprove(b.bindId)">通过</van-button>
+            <van-button size="small" plain :loading="rejectingId === b.bindId" @click.stop="handleReject(b.bindId)">拒绝</van-button>
+          </div>
         </template>
       </van-cell>
+    </van-cell-group>
+
+    <van-cell-group inset title="全部患者" style="margin-top: 12px">
+      <van-pull-refresh v-model="refreshing" @refresh="loadData">
+        <van-empty v-if="!patients.length && !loading" description="暂无患者" />
+        <van-cell v-for="p in filteredPatients" :key="p.bindId" :title="p.nickname"
+          :label="`${formatDiabetes(p.diabetesType)} · ${formatTreatment(p.treatmentPlan)} · ${p.todayCount}次记录`"
+          is-link @click="$router.push('/patient/' + p.patientUserId)">
+          <template #value>
+            <span v-if="p.todayAvg" :style="{ color: getBsColor(p.todayAvg), fontWeight: 700 }">{{ p.todayAvg }}</span>
+            <span v-else style="color: #969799">--</span>
+          </template>
+        </van-cell>
+      </van-pull-refresh>
     </van-cell-group>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { showSuccessToast, showFailToast } from 'vant'
+import { getMyPatients, getPendingBinds, approveBind, rejectBind } from '@/api/patients'
+import { DIABETES_TYPE_LABELS, TREATMENT_PLAN_LABELS } from '@leimengyun/shared'
 
 const search = ref('')
-const patients = ref([
-  { id: '1', name: '糖友小明', info: '1型 · CSII · 5次记录', avgBs: '6.2', color: '#1AAD6E' },
-  { id: '2', name: '王大明', info: '1型 · CSII · 高血糖', avgBs: '15.2', color: '#FF4D4F' },
-  { id: '3', name: '陈大伟', info: '2型 · 口服药 · 3次记录', avgBs: '7.0', color: '#1AAD6E' },
-  { id: '4', name: '林小美', info: '妊娠期 · MDI · 4次记录', avgBs: '7.8', color: '#FFB020' },
-  { id: '5', name: '刘强', info: '2型 · 生活方式 · 2次记录', avgBs: '5.9', color: '#1AAD6E' },
-])
-</script>
+const patients = ref<any[]>([])
+const pendingBinds = ref<any[]>([])
+const loading = ref(false)
+const refreshing = ref(false)
+const approvingId = ref('')
+const rejectingId = ref('')
 
-<style scoped>
-.stats-grid { display: flex; padding: 12px 0; }
-.stat-item { flex: 1; text-align: center; }
-.stat-item + .stat-item { border-left: 1px solid #ebedf0; }
-.stat-value { font-size: 22px; font-weight: 700; display: block; }
-.stat-label { font-size: 11px; color: #969799; display: block; margin-top: 2px; }
-</style>
+const filteredPatients = computed(() => {
+  if (!search.value) return patients.value
+  return patients.value.filter((p: any) => p.nickname?.includes(search.value))
+})
+
+function formatDiabetes(t: string) { return DIABETES_TYPE_LABELS[t] || t }
+function formatTreatment(t: string) { return TREATMENT_PLAN_LABELS[t] || t }
+function getBsColor(v: number) {
+  if (v < 3.9) return '#3B82F6'
+  if (v <= 7.8) return '#1AAD6E'
+  if (v <= 11.1) return '#FFB020'
+  return '#FF4D4F'
+}
+
+async function loadData() {
+  loading.value = true
+  refreshing.value = true
+  try {
+    const [p, b] = await Promise.all([getMyPatients(), getPendingBinds()])
+    patients.value = p as any[]
+    pendingBinds.value = b as any[]
+  } catch { /* ignore */ }
+  finally { loading.value = false; refreshing.value = false }
+}
+
+async function handleApprove(bindId: string) {
+  approvingId.value = bindId
+  try {
+    await approveBind(bindId)
+    showSuccessToast('已通过')
+    await loadData()
+  } catch (err: any) { showFailToast(err.response?.data?.message || '操作失败') }
+  finally { approvingId.value = '' }
+}
+
+async function handleReject(bindId: string) {
+  rejectingId.value = bindId
+  try {
+    await rejectBind(bindId)
+    showSuccessToast('已拒绝')
+    await loadData()
+  } catch { showFailToast('操作失败') }
+  finally { rejectingId.value = '' }
+}
+
+onMounted(loadData)
+</script>

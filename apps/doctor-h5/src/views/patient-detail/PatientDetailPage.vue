@@ -1,43 +1,93 @@
 <template>
   <div class="detail-page">
     <van-nav-bar title="患者详情" left-arrow @click-left="$router.back()" />
-    <div class="detail-header">
-      <div class="detail-avatar">明</div>
-      <div class="detail-info">
-        <h3>糖友小明</h3>
-        <p>男 · 35岁 · 1型糖尿病 · CSII</p>
+    <div v-if="data" class="detail-content">
+      <div class="detail-header">
+        <div class="detail-avatar">{{ data.profile?.nickname?.[0] || '?' }}</div>
+        <div class="detail-info">
+          <h3>{{ data.profile?.nickname }}</h3>
+          <p>{{ data.profile?.gender === 'MALE' ? '男' : '女' }} · {{ formatDiabetes(data.profile?.diabetesType) }} · {{ formatTreatment(data.profile?.treatmentPlan) }}</p>
+        </div>
+      </div>
+
+      <van-cell-group inset title="今日数据">
+        <div class="stats-grid">
+          <div class="stat-item"><span class="stat-value" :style="{ color: data.summary.average ? '#1AAD6E' : '#969799' }">{{ data.summary.average || '--' }}</span><span class="stat-label">平均血糖</span></div>
+          <div class="stat-item"><span class="stat-value">{{ data.summary.count }}</span><span class="stat-label">记录次数</span></div>
+          <div class="stat-item"><span class="stat-value" :style="{ color: data.summary.inRangeRate >= 70 ? '#1AAD6E' : '#FFB020' }">{{ data.summary.count ? data.summary.inRangeRate + '%' : '--' }}</span><span class="stat-label">达标率</span></div>
+        </div>
+      </van-cell-group>
+
+      <van-cell-group inset title="血糖记录" style="margin-top: 12px">
+        <van-empty v-if="!data.bloodSugars.length" description="暂无记录" />
+        <van-cell v-for="r in data.bloodSugars.slice(0, 10)" :key="r.id" :title="formatMeasureTime(r.measureTime)" :label="formatDateTime(r.recordedAt)">
+          <template #value><span :style="{ color: getBsColor(r.value), fontWeight: 700 }">{{ r.value }}</span></template>
+        </van-cell>
+      </van-cell-group>
+
+      <van-cell-group inset title="饮食记录" style="margin-top: 12px">
+        <van-empty v-if="!data.diets.length" description="暂无记录" />
+        <van-cell v-for="r in data.diets.slice(0, 5)" :key="r.id" :title="formatMealType(r.mealType) + ' · 碳水 ' + r.totalCarbs + 'g'" :label="formatDateTime(r.recordedAt)" />
+      </van-cell-group>
+
+      <van-cell-group inset title="用药记录" style="margin-top: 12px">
+        <van-empty v-if="!data.medications.length" description="暂无记录" />
+        <van-cell v-for="r in data.medications.slice(0, 5)" :key="r.id" :title="r.medName + ' · ' + r.dosage + r.dosageUnit" :label="formatDateTime(r.recordedAt)" />
+      </van-cell-group>
+
+      <div style="padding: 16px">
+        <van-button round block type="primary" @click="goChat">发送消息给该患者</van-button>
       </div>
     </div>
-    <van-cell-group inset title="今日数据">
-      <div class="stats-grid">
-        <div class="stat-item"><span class="stat-value" style="color:#1AAD6E;">6.2</span><span class="stat-label">平均血糖</span></div>
-        <div class="stat-item"><span class="stat-value">5</span><span class="stat-label">记录次数</span></div>
-        <div class="stat-item"><span class="stat-value" style="color:#1AAD6E;">80%</span><span class="stat-label">达标率</span></div>
-      </div>
-    </van-cell-group>
-    <van-cell-group inset title="最近记录" style="margin-top:12px;">
-      <van-cell title="午餐后血糖" label="今天 12:30" value="8.5" />
-      <van-cell title="午餐 · 米饭+青菜" label="今天 12:00 · 碳水 65g" />
-      <van-cell title="诺和锐 · 8U · 腹部" label="今天 11:55" />
-      <van-cell title="空腹血糖" label="今天 07:00" value="5.2" />
-    </van-cell-group>
-    <div style="padding: 16px;">
-      <van-button round block type="primary" @click="$router.push('/chat/1')">发送消息</van-button>
-    </div>
+    <van-loading v-else style="text-align: center; padding: 40px" />
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { getPatientHealthData } from '@/api/patients'
+import { getConversations } from '@/api/chat'
+import { MEASURE_TIME_LABELS, MEAL_TYPE_LABELS, DIABETES_TYPE_LABELS, TREATMENT_PLAN_LABELS } from '@leimengyun/shared'
+
+const route = useRoute()
+const router = useRouter()
+const patientUserId = route.params.id as string
+const data = ref<any>(null)
+
+function formatDiabetes(t: string) { return DIABETES_TYPE_LABELS[t] || t }
+function formatTreatment(t: string) { return TREATMENT_PLAN_LABELS[t] || t }
+function formatMeasureTime(t: string) { return (MEASURE_TIME_LABELS[t] || t) + '血糖' }
+function formatMealType(t: string) { return MEAL_TYPE_LABELS[t] || t }
+function formatDateTime(s: string) {
+  const d = new Date(s)
+  return `${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`
+}
+function getBsColor(v: number) {
+  if (v < 3.9) return '#3B82F6'
+  if (v <= 7.8) return '#1AAD6E'
+  if (v <= 11.1) return '#FFB020'
+  return '#FF4D4F'
+}
+
+async function goChat() {
+  try {
+    const convs = (await getConversations()) as any[]
+    const conv = convs.find((c: any) => c.otherUserId === patientUserId)
+    if (conv) router.push(`/chat/${conv.id}`)
+    else router.push(`/messages`)
+  } catch { router.push('/messages') }
+}
+
+onMounted(async () => {
+  try { data.value = await getPatientHealthData(patientUserId) }
+  catch { /* handle error */ }
+})
 </script>
 
 <style scoped>
-.detail-header {
-  background: #3B82F6; padding: 16px; display: flex; align-items: center; gap: 12px; color: #fff;
-}
-.detail-avatar {
-  width: 56px; height: 56px; border-radius: 50%; background: rgba(255,255,255,0.2);
-  display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 600;
-}
+.detail-header { background: #3B82F6; padding: 16px; display: flex; align-items: center; gap: 12px; color: #fff; }
+.detail-avatar { width: 56px; height: 56px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 600; }
 .detail-info h3 { font-size: 18px; }
 .detail-info p { font-size: 12px; opacity: 0.85; margin-top: 4px; }
 .stats-grid { display: flex; padding: 12px 0; }
