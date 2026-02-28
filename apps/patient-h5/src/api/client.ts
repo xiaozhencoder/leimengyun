@@ -1,12 +1,8 @@
 import axios from 'axios'
-import router from '@/router'
 
 const client = axios.create({
   baseURL: '/api',
-  timeout: 15000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  timeout: 10000,
 })
 
 client.interceptors.request.use((config) => {
@@ -18,13 +14,13 @@ client.interceptors.request.use((config) => {
 })
 
 client.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
+  (res) => res.data,
+  (err) => {
+    if (err.response?.status === 401) {
       localStorage.removeItem('token')
-      router.push('/login')
+      window.location.href = '/login'
     }
-    return Promise.reject(error)
+    return Promise.reject(err)
   },
 )
 

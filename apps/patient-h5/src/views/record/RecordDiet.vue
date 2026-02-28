@@ -1,214 +1,42 @@
 <template>
   <div class="record-page">
     <van-nav-bar title="记录饮食" left-arrow @click-left="$router.back()" />
-
-    <div class="section-card">
-      <div class="section-title">餐次</div>
-      <div class="chips">
-        <span
-          v-for="(label, key) in mealTypeLabels"
-          :key="key"
-          class="chip"
-          :class="{ active: form.mealType === key }"
-          @click="form.mealType = key"
-        >
-          {{ label }}
-        </span>
-      </div>
-    </div>
-
-    <div class="section-card">
-      <div class="section-title">
-        食物列表
-        <van-button size="small" type="primary" plain @click="addFood">+ 添加</van-button>
-      </div>
-
-      <div v-for="(item, index) in form.foodItems" :key="index" class="food-item">
-        <van-field v-model="item.name" label="食物" placeholder="食物名称" />
-        <van-field v-model="item.quantity" label="份量" placeholder="如: 1碗" />
-        <van-field v-model="item.carbs" label="碳水(g)" type="number" placeholder="碳水化合物" />
-        <van-button
-          v-if="form.foodItems.length > 1"
-          size="small"
-          type="danger"
-          plain
-          class="remove-btn"
-          @click="removeFood(index)"
-        >
-          删除
-        </van-button>
-      </div>
-
-      <div class="total-carbs">
-        总碳水化合物: <strong>{{ totalCarbs }}</strong> g
-      </div>
-    </div>
-
-    <van-cell-group inset>
-      <van-field
-        v-model="form.recordedAt"
-        is-link
-        readonly
-        label="记录时间"
-        placeholder="请选择时间"
-        @click="showDatetime = true"
-      />
-      <van-field
-        v-model="form.note"
-        label="备注"
-        type="textarea"
-        placeholder="添加备注（选填）"
-        maxlength="200"
-        show-word-limit
-        rows="2"
-        autosize
-      />
+    <van-cell-group inset style="margin-top: 12px;">
+      <van-cell title="餐次" :value="mealType" is-link @click="showMealPicker = true" />
     </van-cell-group>
-
-    <div class="btn-area">
-      <van-button type="primary" block round size="large" :loading="loading" @click="handleSave">
-        保存记录
-      </van-button>
+    <van-cell-group inset title="食物明细" style="margin-top: 12px;">
+      <van-field v-for="(item, i) in foodItems" :key="i" v-model="item.name" :label="'食物' + (i+1)" placeholder="食物名称">
+        <template #button>
+          <span style="color: #1AAD6E; font-size: 13px;">{{ item.carbs }}g碳水</span>
+        </template>
+      </van-field>
+      <van-cell>
+        <van-button size="small" plain type="primary" icon="plus" @click="addFood">添加食物</van-button>
+      </van-cell>
+    </van-cell-group>
+    <div style="padding: 24px 16px;">
+      <van-button round block type="primary" @click="onSave">保存记录</van-button>
     </div>
-
-    <van-popup v-model:show="showDatetime" position="bottom" round>
-      <van-date-picker
-        v-model="selectedDate"
-        title="选择日期"
-        @confirm="onDateConfirm"
-        @cancel="showDatetime = false"
-      />
-    </van-popup>
+    <van-action-sheet v-model:show="showMealPicker" title="选择餐次" :actions="mealActions" @select="onMealSelect" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { showToast } from 'vant'
-import { MEAL_TYPE_LABELS } from '@leimengyun/shared'
-import { createDiet } from '@/api/health'
+import { showSuccessToast } from 'vant'
 
 const router = useRouter()
-const loading = ref(false)
-const showDatetime = ref(false)
-const selectedDate = ref<string[]>([])
-const mealTypeLabels = MEAL_TYPE_LABELS
+const mealType = ref('午餐')
+const showMealPicker = ref(false)
+const foodItems = ref([
+  { name: '白米饭', carbs: 45 },
+  { name: '清炒西蓝花', carbs: 8 },
+])
 
-const form = reactive({
-  mealType: 'BREAKFAST',
-  foodItems: [{ name: '', quantity: '', carbs: '' }] as { name: string; quantity: string; carbs: string }[],
-  recordedAt: new Date().toLocaleDateString('zh-CN'),
-  note: '',
-})
+const mealActions = [{ name: '早餐' }, { name: '午餐' }, { name: '晚餐' }, { name: '加餐' }]
 
-const totalCarbs = computed(() => {
-  return form.foodItems.reduce((sum, item) => sum + (Number(item.carbs) || 0), 0)
-})
-
-function addFood() {
-  form.foodItems.push({ name: '', quantity: '', carbs: '' })
-}
-
-function removeFood(index: number) {
-  form.foodItems.splice(index, 1)
-}
-
-function onDateConfirm({ selectedValues }: { selectedValues: string[] }) {
-  form.recordedAt = selectedValues.join('-')
-  showDatetime.value = false
-}
-
-function handleSave() {
-  const validItems = form.foodItems.filter((i) => i.name)
-  if (validItems.length === 0) {
-    showToast('请至少添加一种食物')
-    return
-  }
-
-  loading.value = true
-  createDiet({
-    mealType: form.mealType as never,
-    foodItems: validItems.map((i) => ({
-      name: i.name,
-      quantity: i.quantity,
-      carbs: Number(i.carbs) || 0,
-    })),
-    totalCarbs: totalCarbs.value,
-    recordedAt: form.recordedAt,
-    note: form.note || undefined,
-  })
-    .then(() => {
-      showToast('保存成功')
-      router.back()
-    })
-    .catch(() => {
-      showToast('保存失败，请重试')
-    })
-    .finally(() => {
-      loading.value = false
-    })
-}
+function onMealSelect(a: { name: string }) { mealType.value = a.name; showMealPicker.value = false }
+function addFood() { foodItems.value.push({ name: '', carbs: 0 }) }
+function onSave() { showSuccessToast('记录成功'); setTimeout(() => router.back(), 500) }
 </script>
-
-<style scoped>
-.record-page {
-  min-height: 100vh;
-  background: var(--bg);
-}
-
-.section-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.chip {
-  padding: 6px 14px;
-  border-radius: 16px;
-  font-size: 13px;
-  background: #f2f3f5;
-  color: var(--text);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.chip.active {
-  background: var(--primary);
-  color: #fff;
-}
-
-.food-item {
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 8px;
-  margin-bottom: 8px;
-  position: relative;
-}
-
-.remove-btn {
-  margin-top: 4px;
-}
-
-.total-carbs {
-  text-align: right;
-  font-size: 14px;
-  padding-top: 8px;
-  color: var(--text-secondary);
-}
-
-.total-carbs strong {
-  color: var(--primary);
-  font-size: 18px;
-}
-
-.btn-area {
-  margin: 24px 16px;
-}
-</style>
