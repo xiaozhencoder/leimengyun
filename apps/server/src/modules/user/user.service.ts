@@ -129,7 +129,7 @@ export class UserService {
       },
     })
 
-    const result = []
+    const result: any[] = []
     for (const b of binds) {
       const profile = b.patient.patientProfile
       if (!profile) continue

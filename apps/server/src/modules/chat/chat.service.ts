@@ -33,7 +33,7 @@ export class ChatService {
       orderBy: { lastMessageAt: { sort: 'desc', nulls: 'last' } },
     })
 
-    const result = []
+    const result: any[] = []
     for (const conv of conversations) {
       const isPatient = conv.patientId === userId
       const other = isPatient ? conv.doctor : conv.patient
