@@ -1,0 +1,263 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// 用户体系
+// ============================================
+
+enum UserRole {
+  PATIENT
+  DOCTOR
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BANNED
+}
+
+model User {
+  id           String     @id @default(uuid())
+  phone        String     @unique
+  passwordHash String?    @map("password_hash")
+  role         UserRole
+  avatarUrl    String?    @map("avatar_url")
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  patientProfile PatientProfile?
+  doctorProfile  DoctorProfile?
+  sentMessages   Message[]       @relation("SentMessages")
+
+  doctorBindsAsPatient DoctorPatientBind[] @relation("PatientBinds")
+  doctorBindsAsDoctor  DoctorPatientBind[] @relation("DoctorBinds")
+
+  conversationsAsPatient Conversation[] @relation("PatientConversations")
+  conversationsAsDoctor  Conversation[] @relation("DoctorConversations")
+
+  @@map("users")
+}
+
+enum DiabetesType {
+  TYPE_1
+  TYPE_2
+  GESTATIONAL
+  OTHER
+}
+
+enum TreatmentPlan {
+  CSII
+  MDI
+  ORAL
+  LIFESTYLE
+}
+
+model PatientProfile {
+  id            String        @id @default(uuid())
+  userId        String        @unique @map("user_id")
+  nickname      String
+  gender        String
+  birthDate     DateTime      @map("birth_date")
+  diabetesType  DiabetesType  @map("diabetes_type")
+  diagnosisDate DateTime?     @map("diagnosis_date")
+  treatmentPlan TreatmentPlan @map("treatment_plan")
+  height        Float?
+  weight        Float?
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  user              User               @relation(fields: [userId], references: [id])
+  bloodSugarRecords BloodSugarRecord[]
+  dietRecords       DietRecord[]
+  medicationRecords MedicationRecord[]
+
+  @@map("patient_profiles")
+}
+
+enum DoctorTitle {
+  CHIEF
+  ASSOCIATE_CHIEF
+  ATTENDING
+  RESIDENT
+}
+
+enum VerifyStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model DoctorProfile {
+  id           String       @id @default(uuid())
+  userId       String       @unique @map("user_id")
+  realName     String       @map("real_name")
+  hospital     String
+  department   String
+  title        DoctorTitle
+  licenseNo    String       @map("license_no")
+  specialties  String?
+  bio          String?
+  verifyStatus VerifyStatus @default(PENDING) @map("verify_status")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("doctor_profiles")
+}
+
+enum BindStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  REMOVED
+}
+
+model DoctorPatientBind {
+  id        String     @id @default(uuid())
+  doctorId  String     @map("doctor_id")
+  patientId String     @map("patient_id")
+  status    BindStatus @default(PENDING)
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  doctor  User @relation("DoctorBinds", fields: [doctorId], references: [id])
+  patient User @relation("PatientBinds", fields: [patientId], references: [id])
+
+  @@unique([doctorId, patientId])
+  @@map("doctor_patient_binds")
+}
+
+// ============================================
+// 健康数据
+// ============================================
+
+enum MeasureTime {
+  FASTING
+  BEFORE_BREAKFAST
+  AFTER_BREAKFAST
+  BEFORE_LUNCH
+  AFTER_LUNCH
+  BEFORE_DINNER
+  AFTER_DINNER
+  BEFORE_SLEEP
+  MIDNIGHT
+  RANDOM
+}
+
+model BloodSugarRecord {
+  id          String      @id @default(uuid())
+  patientId   String      @map("patient_id")
+  value       Float
+  measureTime MeasureTime @map("measure_time")
+  recordedAt  DateTime    @map("recorded_at")
+  note        String?
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  patient PatientProfile @relation(fields: [patientId], references: [id])
+
+  @@index([patientId, recordedAt])
+  @@map("blood_sugar_records")
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+}
+
+model DietRecord {
+  id         String   @id @default(uuid())
+  patientId  String   @map("patient_id")
+  mealType   MealType @map("meal_type")
+  foodItems  Json     @map("food_items")
+  totalCarbs Float    @map("total_carbs")
+  photoUrl   String?  @map("photo_url")
+  recordedAt DateTime @map("recorded_at")
+  note       String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  patient PatientProfile @relation(fields: [patientId], references: [id])
+
+  @@index([patientId, recordedAt])
+  @@map("diet_records")
+}
+
+enum MedType {
+  INSULIN
+  ORAL
+}
+
+model MedicationRecord {
+  id            String   @id @default(uuid())
+  patientId     String   @map("patient_id")
+  medType       MedType  @map("med_type")
+  medName       String   @map("med_name")
+  dosage        Float
+  dosageUnit    String   @map("dosage_unit")
+  injectionSite String?  @map("injection_site")
+  recordedAt    DateTime @map("recorded_at")
+  note          String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  patient PatientProfile @relation(fields: [patientId], references: [id])
+
+  @@index([patientId, recordedAt])
+  @@map("medication_records")
+}
+
+// ============================================
+// 医患沟通 (IM)
+// ============================================
+
+enum ConversationStatus {
+  ACTIVE
+  CLOSED
+}
+
+model Conversation {
+  id            String             @id @default(uuid())
+  patientId     String             @map("patient_id")
+  doctorId      String             @map("doctor_id")
+  status        ConversationStatus @default(ACTIVE)
+  lastMessageAt DateTime?          @map("last_message_at")
+  createdAt     DateTime           @default(now()) @map("created_at")
+
+  patient  User      @relation("PatientConversations", fields: [patientId], references: [id])
+  doctor   User      @relation("DoctorConversations", fields: [doctorId], references: [id])
+  messages Message[]
+
+  @@unique([patientId, doctorId])
+  @@map("conversations")
+}
+
+enum MessageContentType {
+  TEXT
+  IMAGE
+  BLOOD_SUGAR_CARD
+}
+
+model Message {
+  id             String             @id @default(uuid())
+  conversationId String             @map("conversation_id")
+  senderId       String             @map("sender_id")
+  contentType    MessageContentType @default(TEXT) @map("content_type")
+  content        String
+  isRead         Boolean            @default(false) @map("is_read")
+  createdAt      DateTime           @default(now()) @map("created_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+  sender       User         @relation("SentMessages", fields: [senderId], references: [id])
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
