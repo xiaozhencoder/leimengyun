@@ -5,7 +5,7 @@ import { AuthService } from './auth.service'
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private readonly authService: AuthService) {
+  constructor(private authService: AuthService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -13,11 +13,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     })
   }
 
-  async validate(payload: { sub: string; role: string }) {
+  async validate(payload: { sub: string; phone: string; role: string }) {
     const user = await this.authService.validateUser(payload.sub)
-    if (!user) {
-      throw new UnauthorizedException()
-    }
-    return { userId: user.id, role: user.role }
+    if (!user) throw new UnauthorizedException()
+    return user
   }
 }

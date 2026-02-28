@@ -1,49 +1,47 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../common/prisma.service'
-import { MeasureTime, MealType, MedType } from '@prisma/client'
-import { CreateBloodSugarDto, CreateDietDto, CreateMedicationDto } from './dto'
+import { CreateBloodSugarDto, CreateDietRecordDto, CreateMedicationDto } from './health.dto'
 
 @Injectable()
 export class HealthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) {}
 
-  async createBloodSugar(patientProfileId: string, dto: CreateBloodSugarDto) {
+  private async getPatientProfileId(userId: string) {
+    const profile = await this.prisma.patientProfile.findUnique({ where: { userId } })
+    if (!profile) throw new NotFoundException('请先完善患者档案')
+    return profile.id
+  }
+
+  async createBloodSugar(userId: string, dto: CreateBloodSugarDto) {
+    const patientId = await this.getPatientProfileId(userId)
     return this.prisma.bloodSugarRecord.create({
       data: {
-        patientId: patientProfileId,
+        patientId,
         value: dto.value,
-        measureTime: dto.measureTime as MeasureTime,
+        measureTime: dto.measureTime,
         recordedAt: new Date(dto.recordedAt),
         note: dto.note,
       },
     })
   }
 
-  async getBloodSugars(
-    patientProfileId: string,
-    query: { startDate?: string; endDate?: string },
-  ) {
-    const where: Record<string, unknown> = { patientId: patientProfileId }
-
-    if (query.startDate || query.endDate) {
-      const recordedAt: Record<string, Date> = {}
-      if (query.startDate) recordedAt.gte = new Date(query.startDate)
-      if (query.endDate) recordedAt.lte = new Date(query.endDate)
-      where.recordedAt = recordedAt
-    }
-
+  async getBloodSugars(userId: string, days: number) {
+    const patientId = await this.getPatientProfileId(userId)
+    const since = new Date()
+    since.setDate(since.getDate() - days)
     return this.prisma.bloodSugarRecord.findMany({
-      where,
+      where: { patientId, recordedAt: { gte: since } },
       orderBy: { recordedAt: 'desc' },
     })
   }
 
-  async createDiet(patientProfileId: string, dto: CreateDietDto) {
+  async createDiet(userId: string, dto: CreateDietRecordDto) {
+    const patientId = await this.getPatientProfileId(userId)
     return this.prisma.dietRecord.create({
       data: {
-        patientId: patientProfileId,
-        mealType: dto.mealType as MealType,
-        foodItems: JSON.parse(JSON.stringify(dto.foodItems)),
+        patientId,
+        mealType: dto.mealType,
+        foodItems: dto.foodItems as any,
         totalCarbs: dto.totalCarbs,
         photoUrl: dto.photoUrl,
         recordedAt: new Date(dto.recordedAt),
@@ -52,27 +50,22 @@ export class HealthService {
     })
   }
 
-  async getDiets(patientProfileId: string, query: { startDate?: string; endDate?: string }) {
-    const where: Record<string, unknown> = { patientId: patientProfileId }
-
-    if (query.startDate || query.endDate) {
-      const recordedAt: Record<string, Date> = {}
-      if (query.startDate) recordedAt.gte = new Date(query.startDate)
-      if (query.endDate) recordedAt.lte = new Date(query.endDate)
-      where.recordedAt = recordedAt
-    }
-
+  async getDiets(userId: string, days: number) {
+    const patientId = await this.getPatientProfileId(userId)
+    const since = new Date()
+    since.setDate(since.getDate() - days)
     return this.prisma.dietRecord.findMany({
-      where,
+      where: { patientId, recordedAt: { gte: since } },
       orderBy: { recordedAt: 'desc' },
     })
   }
 
-  async createMedication(patientProfileId: string, dto: CreateMedicationDto) {
+  async createMedication(userId: string, dto: CreateMedicationDto) {
+    const patientId = await this.getPatientProfileId(userId)
     return this.prisma.medicationRecord.create({
       data: {
-        patientId: patientProfileId,
-        medType: dto.medType as MedType,
+        patientId,
+        medType: dto.medType,
         medName: dto.medName,
         dosage: dto.dosage,
         dosageUnit: dto.dosageUnit,
@@ -83,89 +76,36 @@ export class HealthService {
     })
   }
 
-  async getMedications(patientProfileId: string, query: { startDate?: string; endDate?: string }) {
-    const where: Record<string, unknown> = { patientId: patientProfileId }
-
-    if (query.startDate || query.endDate) {
-      const recordedAt: Record<string, Date> = {}
-      if (query.startDate) recordedAt.gte = new Date(query.startDate)
-      if (query.endDate) recordedAt.lte = new Date(query.endDate)
-      where.recordedAt = recordedAt
-    }
-
+  async getMedications(userId: string, days: number) {
+    const patientId = await this.getPatientProfileId(userId)
+    const since = new Date()
+    since.setDate(since.getDate() - days)
     return this.prisma.medicationRecord.findMany({
-      where,
+      where: { patientId, recordedAt: { gte: since } },
       orderBy: { recordedAt: 'desc' },
     })
   }
 
-  async getDashboard(patientProfileId: string) {
+  async getTodaySummary(userId: string) {
+    const patientId = await this.getPatientProfileId(userId)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
 
     const records = await this.prisma.bloodSugarRecord.findMany({
-      where: {
-        patientId: patientProfileId,
-        recordedAt: { gte: today, lt: tomorrow },
-      },
-      orderBy: { recordedAt: 'asc' },
+      where: { patientId, recordedAt: { gte: today } },
     })
 
-    if (records.length === 0) {
-      return {
-        count: 0,
-        avg: 0,
-        min: 0,
-        max: 0,
-        records: [],
-      }
-    }
-
-    const values = records.map((r) => r.value)
-    const sum = values.reduce((a, b) => a + b, 0)
+    const count = records.length
+    const avg = count > 0 ? records.reduce((s, r) => s + r.value, 0) / count : 0
+    const inRange = records.filter((r) => r.value >= 3.9 && r.value <= 10).length
+    const rate = count > 0 ? Math.round((inRange / count) * 100) : 0
 
     return {
-      count: records.length,
-      avg: Math.round((sum / records.length) * 10) / 10,
-      min: Math.min(...values),
-      max: Math.max(...values),
-      records,
+      count,
+      average: Math.round(avg * 10) / 10,
+      inRangeRate: rate,
+      max: count > 0 ? Math.max(...records.map((r) => r.value)) : 0,
+      min: count > 0 ? Math.min(...records.map((r) => r.value)) : 0,
     }
-  }
-
-  async getTrend(patientProfileId: string, days: number) {
-    const endDate = new Date()
-    const startDate = new Date()
-    startDate.setDate(startDate.getDate() - days)
-    startDate.setHours(0, 0, 0, 0)
-
-    const records = await this.prisma.bloodSugarRecord.findMany({
-      where: {
-        patientId: patientProfileId,
-        recordedAt: { gte: startDate, lte: endDate },
-      },
-      orderBy: { recordedAt: 'asc' },
-    })
-
-    const dailyMap = new Map<string, number[]>()
-    for (const record of records) {
-      const dateKey = record.recordedAt.toISOString().split('T')[0]
-      if (!dailyMap.has(dateKey)) {
-        dailyMap.set(dateKey, [])
-      }
-      dailyMap.get(dateKey)!.push(record.value)
-    }
-
-    const trend = Array.from(dailyMap.entries()).map(([date, values]) => ({
-      date,
-      avg: Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10) / 10,
-      min: Math.min(...values),
-      max: Math.max(...values),
-      count: values.length,
-    }))
-
-    return trend
   }
 }

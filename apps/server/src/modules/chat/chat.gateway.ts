@@ -2,47 +2,43 @@ import {
   WebSocketGateway,
   WebSocketServer,
   SubscribeMessage,
-  MessageBody,
-  ConnectedSocket,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
 } from '@nestjs/websockets'
 import { Server, Socket } from 'socket.io'
-import { ChatService } from './chat.service'
 
-@WebSocketGateway({ cors: true })
-export class ChatGateway {
+@WebSocketGateway({
+  cors: { origin: ['http://localhost:5173', 'http://localhost:5174'] },
+})
+export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server
 
-  constructor(private readonly chatService: ChatService) {}
+  private userSockets = new Map<string, string>()
 
-  @SubscribeMessage('joinConversation')
-  handleJoinConversation(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: { conversationId: string },
-  ) {
-    client.join(`conversation:${data.conversationId}`)
-    return { event: 'joinedConversation', data: { conversationId: data.conversationId } }
+  handleConnection(client: Socket) {
+    const userId = client.handshake.query.userId as string
+    if (userId) {
+      this.userSockets.set(userId, client.id)
+      console.log(`用户 ${userId} 已连接`)
+    }
+  }
+
+  handleDisconnect(client: Socket) {
+    for (const [userId, socketId] of this.userSockets.entries()) {
+      if (socketId === client.id) {
+        this.userSockets.delete(userId)
+        console.log(`用户 ${userId} 已断开`)
+        break
+      }
+    }
   }
 
   @SubscribeMessage('sendMessage')
-  async handleSendMessage(
-    @ConnectedSocket() client: Socket,
-    @MessageBody()
-    data: {
-      userId: string
-      conversationId: string
-      contentType: string
-      content: string
-    },
-  ) {
-    const message = await this.chatService.sendMessage(data.userId, {
-      conversationId: data.conversationId,
-      contentType: data.contentType,
-      content: data.content,
-    })
-
-    this.server.to(`conversation:${data.conversationId}`).emit('newMessage', message)
-
-    return { event: 'messageSent', data: message }
+  handleMessage(client: Socket, payload: { to: string; message: any }) {
+    const targetSocketId = this.userSockets.get(payload.to)
+    if (targetSocketId) {
+      this.server.to(targetSocketId).emit('newMessage', payload.message)
+    }
   }
 }
