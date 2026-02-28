@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, Param, UseGuards, Request } from '@nestjs/common'
+import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, Request } from '@nestjs/common'
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { UserService } from './user.service'
@@ -36,16 +36,68 @@ export class UserController {
   @Get('doctors')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: '获取医生列表' })
-  async getDoctors() {
-    return this.userService.getDoctors()
+  @ApiOperation({ summary: '搜索医生列表' })
+  async getDoctors(@Query('keyword') keyword?: string) {
+    return this.userService.getDoctors(keyword)
   }
 
   @Post('bind-doctor/:doctorId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: '绑定医生' })
+  @ApiOperation({ summary: '患者发起绑定医生' })
   async bindDoctor(@Request() req, @Param('doctorId') doctorId: string) {
     return this.userService.bindDoctor(req.user.id, doctorId)
+  }
+
+  @Get('my-doctors')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '患者获取已绑定医生列表' })
+  async getMyDoctors(@Request() req) {
+    return this.userService.getMyDoctors(req.user.id)
+  }
+
+  @Get('my-patients')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '医生获取已绑定患者列表' })
+  async getMyPatients(@Request() req) {
+    return this.userService.getMyPatients(req.user.id)
+  }
+
+  @Get('pending-binds')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '医生获取待审核绑定申请' })
+  async getPendingBinds(@Request() req) {
+    return this.userService.getPendingBinds(req.user.id)
+  }
+
+  @Put('bind/:bindId/approve')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '医生通过绑定申请' })
+  async approveBind(@Request() req, @Param('bindId') bindId: string) {
+    return this.userService.approveBind(req.user.id, bindId)
+  }
+
+  @Put('bind/:bindId/reject')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '医生拒绝绑定申请' })
+  async rejectBind(@Request() req, @Param('bindId') bindId: string) {
+    return this.userService.rejectBind(bindId)
+  }
+
+  @Get('patient/:patientUserId/health-data')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '医生查看患者健康数据' })
+  async getPatientHealthData(
+    @Request() req,
+    @Param('patientUserId') patientUserId: string,
+    @Query('days') days?: string,
+  ) {
+    return this.userService.getPatientHealthData(req.user.id, patientUserId, parseInt(days || '7'))
   }
 }

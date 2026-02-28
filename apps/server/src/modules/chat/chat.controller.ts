@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Request } from '@nestjs/common'
+import { Controller, Get, Post, Put, Body, Param, UseGuards, Request } from '@nestjs/common'
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { ChatService } from './chat.service'
@@ -19,13 +19,19 @@ export class ChatController {
 
   @Get('conversations/:id/messages')
   @ApiOperation({ summary: '获取会话消息' })
-  async getMessages(@Param('id') id: string) {
-    return this.chatService.getMessages(id)
+  async getMessages(@Request() req, @Param('id') id: string) {
+    return this.chatService.getMessages(req.user.id, id)
   }
 
   @Post('messages')
   @ApiOperation({ summary: '发送消息' })
   async sendMessage(@Request() req, @Body() dto: SendMessageDto) {
     return this.chatService.sendMessage(req.user.id, dto)
+  }
+
+  @Put('conversations/:id/read')
+  @ApiOperation({ summary: '标记会话消息已读' })
+  async markRead(@Request() req, @Param('id') id: string) {
+    return this.chatService.markRead(req.user.id, id)
   }
 }
