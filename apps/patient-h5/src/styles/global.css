@@ -1,0 +1,78 @@
+:root {
+  --primary: #1aad6e;
+  --primary-light: #e8f7ef;
+  --bg: #f7f8fa;
+  --text: #333333;
+  --text-secondary: #999999;
+  --border: #ebedf0;
+  --danger: #ee0a24;
+  --warning: #ff976a;
+  --success: #07c160;
+  --white: #ffffff;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  min-height: 100vh;
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    'Helvetica Neue',
+    Helvetica,
+    'PingFang SC',
+    'Hiragino Sans GB',
+    'Microsoft YaHei',
+    Arial,
+    sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background-color: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+#app {
+  width: 100%;
+  min-height: 100vh;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+.page {
+  min-height: 100vh;
+  background-color: var(--bg);
+}
+
+.page-with-tabbar {
+  padding-bottom: 50px;
+}
+
+.section-card {
+  margin: 12px 16px;
+  padding: 16px;
+  background: var(--white);
+  border-radius: 8px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text);
+}
