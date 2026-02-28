@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>雷檬云 - 医生端原型</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+:root {
+  --primary: #1AAD6E; --primary-light: #E8F8F0; --primary-dark: #158C58;
+  --accent: #3B82F6; --accent-light: #E8F0FE;
+  --danger: #FF4D4F; --warning: #FFB020; --info: #3B82F6; --low: #3B82F6;
+  --bg: #F7F8FA; --card: #FFFFFF; --border: #EBEDF0;
+  --text-1: #323233; --text-2: #646566; --text-3: #969799; --text-4: #C8C9CC;
+  --font: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+  --tab-height: 50px;
+}
+html, body { font-family: var(--font); background: var(--bg); color: var(--text-1); font-size: 14px; line-height: 1.5; height: 100%; overflow: hidden; }
+.page { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg); z-index: 1; display: none; flex-direction: column; overflow: hidden; }
+.page.active { display: flex; z-index: 10; }
+.page.sub-page { z-index: 20; }
+.header { height: 48px; background: var(--accent); color: #fff; display: flex; align-items: center; padding: 0 16px; flex-shrink: 0; }
+.header-title { flex: 1; text-align: center; font-size: 17px; font-weight: 600; }
+.header-back { width: 40px; height: 48px; display: flex; align-items: center; cursor: pointer; font-size: 20px; }
+.header-right { width: 40px; height: 48px; display: flex; align-items: center; justify-content: flex-end; cursor: pointer; font-size: 14px; }
+.header.white { background: #fff; color: var(--text-1); border-bottom: 1px solid var(--border); }
+.page-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.page-body.has-tab { padding-bottom: var(--tab-height); }
+.tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: var(--tab-height); background: #fff; border-top: 1px solid var(--border); display: flex; z-index: 100; }
+.tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: var(--text-3); font-size: 10px; gap: 2px; }
+.tab-item.active { color: var(--accent); }
+.tab-icon { font-size: 22px; height: 24px; line-height: 24px; }
+.tab-badge { position: relative; }
+.tab-badge::after { content: ''; position: absolute; top: -2px; right: -6px; width: 8px; height: 8px; background: var(--danger); border-radius: 50%; }
+.btn { height: 44px; border-radius: 8px; border: none; font-size: 16px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 100%; }
+.btn:active { opacity: 0.7; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-outline { background: #fff; color: var(--accent); border: 1px solid var(--accent); }
+.btn-sm { height: 32px; font-size: 13px; border-radius: 6px; padding: 0 12px; width: auto; }
+.card { background: var(--card); border-radius: 12px; padding: 16px; margin: 0 16px 12px; }
+.card-title { font-size: 15px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+.card-more { font-size: 12px; color: var(--text-3); cursor: pointer; }
+.avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--accent-light); display: flex; align-items: center; justify-content: center; color: var(--accent); font-weight: 600; font-size: 18px; flex-shrink: 0; }
+.avatar-lg { width: 64px; height: 64px; font-size: 26px; }
+.avatar-sm { width: 36px; height: 36px; font-size: 15px; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+.tag-green { background: #E8F8F0; color: #1AAD6E; }
+.tag-red { background: #FFF0F0; color: var(--danger); }
+.tag-yellow { background: #FFF8E6; color: #B8860B; }
+.tag-blue { background: var(--accent-light); color: var(--accent); }
+.cell { display: flex; align-items: center; padding: 14px 16px; background: #fff; border-bottom: 1px solid var(--border); cursor: pointer; }
+.cell:last-child { border-bottom: none; }
+.cell-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-right: 12px; flex-shrink: 0; }
+.cell-body { flex: 1; min-width: 0; }
+.cell-title { font-size: 15px; color: var(--text-1); font-weight: 500; }
+.cell-desc { font-size: 12px; color: var(--text-3); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cell-right { font-size: 13px; color: var(--text-3); flex-shrink: 0; text-align: right; margin-left: 8px; }
+.cell-arrow::after { content: '›'; font-size: 20px; color: var(--text-4); margin-left: 4px; }
+.search-bar { padding: 10px 16px; background: #fff; border-bottom: 1px solid var(--border); }
+.search-input-wrap { display: flex; align-items: center; background: var(--bg); border-radius: 20px; padding: 0 14px; height: 36px; }
+.search-input-wrap input { flex: 1; border: none; background: transparent; outline: none; font-size: 14px; }
+.search-icon { color: var(--text-3); margin-right: 6px; }
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; }
+.stat-item { text-align: center; padding: 10px 0; }
+.stat-value { font-size: 22px; font-weight: 700; color: var(--text-1); }
+.stat-label { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+.stat-item + .stat-item { border-left: 1px solid var(--border); }
+.section-title { font-size: 15px; font-weight: 600; padding: 16px 16px 10px; color: var(--text-1); }
+.chart-area { height: 180px; position: relative; margin: 8px 0; }
+.chart-canvas { width: 100%; height: 100%; }
+.record-item { display: flex; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.record-item:last-child { border-bottom: none; }
+.record-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-right: 10px; flex-shrink: 0; }
+.record-content { flex: 1; min-width: 0; }
+.record-title { font-size: 14px; font-weight: 500; }
+.record-meta { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+.record-value { font-size: 18px; font-weight: 700; flex-shrink: 0; margin-left: 8px; }
+.bs-normal { color: #1AAD6E; }
+.bs-high { color: #FFB020; }
+.bs-danger { color: #FF4D4F; }
+.bs-low { color: #3B82F6; }
+.filter-tabs { display: flex; padding: 10px 16px; gap: 8px; background: #fff; border-bottom: 1px solid var(--border); }
+.filter-tab { padding: 6px 14px; border-radius: 20px; font-size: 13px; cursor: pointer; background: var(--bg); color: var(--text-2); }
+.filter-tab.active { background: var(--accent); color: #fff; }
+.msg-item { display: flex; align-items: center; padding: 14px 16px; background: #fff; border-bottom: 1px solid var(--border); cursor: pointer; }
+.msg-avatar { margin-right: 12px; position: relative; }
+.msg-unread { position: absolute; top: -2px; right: -2px; min-width: 16px; height: 16px; background: var(--danger); color: #fff; font-size: 10px; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 0 4px; }
+.msg-body { flex: 1; min-width: 0; }
+.msg-name { font-size: 15px; font-weight: 500; }
+.msg-preview { font-size: 13px; color: var(--text-3); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msg-time { font-size: 11px; color: var(--text-4); margin-left: 8px; flex-shrink: 0; align-self: flex-start; margin-top: 2px; }
+.profile-header { background: var(--accent); padding: 30px 16px 24px; display: flex; align-items: center; gap: 14px; }
+.profile-info { color: #fff; }
+.profile-name { font-size: 20px; font-weight: 600; }
+.profile-meta { font-size: 13px; opacity: 0.85; margin-top: 4px; }
+.profile-menu { background: #fff; border-radius: 12px; margin: -12px 16px 12px; overflow: hidden; }
+.chat-body { padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; }
+.chat-time { text-align: center; font-size: 11px; color: var(--text-3); padding: 4px 0; }
+.chat-msg { display: flex; gap: 8px; max-width: 80%; }
+.chat-msg.self { align-self: flex-end; flex-direction: row-reverse; }
+.chat-bubble { padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5; word-break: break-word; }
+.chat-msg:not(.self) .chat-bubble { background: #fff; border-top-left-radius: 4px; }
+.chat-msg.self .chat-bubble { background: var(--accent-light); color: var(--text-1); border-top-right-radius: 4px; }
+.chat-input-bar { display: flex; align-items: center; padding: 8px 12px; background: #fff; border-top: 1px solid var(--border); gap: 8px; flex-shrink: 0; }
+.chat-input { flex: 1; height: 36px; border: 1px solid var(--border); border-radius: 18px; padding: 0 14px; font-size: 14px; outline: none; }
+.chat-input:focus { border-color: var(--accent); }
+.chat-send { width: 60px; height: 36px; border-radius: 18px; }
+.bs-card { background: linear-gradient(135deg, #E8F8F0, #fff); border: 1px solid #d0ead9; border-radius: 10px; padding: 12px; }
+.bs-card-title { font-size: 12px; color: #1AAD6E; font-weight: 500; margin-bottom: 6px; }
+.bs-card-row { display: flex; justify-content: space-between; align-items: baseline; }
+.form-group { margin-bottom: 16px; }
+.form-label { font-size: 14px; color: var(--text-1); margin-bottom: 6px; font-weight: 500; display: block; }
+.form-input { width: 100%; height: 44px; border: 1px solid var(--border); border-radius: 8px; padding: 0 12px; font-size: 15px; color: var(--text-1); background: #fff; outline: none; }
+.form-input:focus { border-color: var(--accent); }
+.form-input::placeholder { color: var(--text-4); }
+textarea.form-input { height: 80px; padding: 10px 12px; resize: none; }
+.form-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23969799' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+.chip { padding: 8px 16px; border-radius: 20px; border: 1px solid var(--border); font-size: 13px; cursor: pointer; background: #fff; display: inline-block; margin: 0 4px 4px 0; }
+.chip.active { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
+.toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.75); color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px; z-index: 9999; opacity: 0; transition: opacity .3s; pointer-events: none; }
+.toast.show { opacity: 1; }
+.date-group { padding: 12px 16px 6px; font-size: 13px; color: var(--text-3); font-weight: 500; background: var(--bg); }
+
+/* Patient card for doctor view */
+.patient-card { display: flex; align-items: center; padding: 14px 16px; background: #fff; border-bottom: 1px solid var(--border); cursor: pointer; }
+.patient-card:active { background: #f9f9f9; }
+.patient-info { flex: 1; margin-left: 12px; min-width: 0; }
+.patient-name { font-size: 15px; font-weight: 500; }
+.patient-tags { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+.patient-stats { display: flex; gap: 12px; margin-top: 4px; }
+.patient-stat { font-size: 11px; color: var(--text-3); }
+.patient-stat strong { color: var(--text-1); font-size: 13px; }
+
+/* Pending badge */
+.pending-badge { background: var(--warning); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; }
+
+/* Detail header */
+.detail-header { background: var(--accent); padding: 16px; display: flex; align-items: center; gap: 12px; }
+.detail-info { color: #fff; flex: 1; }
+.detail-name { font-size: 18px; font-weight: 600; }
+.detail-meta { font-size: 12px; opacity: 0.85; margin-top: 4px; }
+
+/* Verify status */
+.verify-badge { display: flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 12px; font-size: 12px; }
+.verify-pending { background: #FFF8E6; color: #B8860B; }
+.verify-approved { background: #E8F8F0; color: #1AAD6E; }
+</style>
+</head>
+<body>
+
+<!-- ==================== LOGIN PAGE ==================== -->
+<div id="page-login" class="page active" style="background:#fff;">
+  <div class="page-body">
+    <div style="text-align:center;padding:60px 0 40px;">
+      <div style="font-size:64px;">🍋</div>
+      <div style="font-size:22px;font-weight:700;color:var(--accent);margin-top:8px;">雷檬云 · 医生版</div>
+      <div style="font-size:13px;color:var(--text-3);margin-top:4px;">专业糖尿病患者管理平台</div>
+    </div>
+    <div style="padding:0 32px;">
+      <div class="form-group">
+        <input class="form-input" type="tel" placeholder="请输入手机号" maxlength="11" id="d-login-phone" value="13800138001">
+      </div>
+      <div class="form-group">
+        <div style="display:flex;gap:10px;">
+          <input class="form-input" type="text" placeholder="请输入验证码" maxlength="6" id="d-login-code" style="flex:1;">
+          <button style="width:110px;height:44px;border-radius:8px;border:1px solid var(--accent);background:#fff;color:var(--accent);font-size:13px;cursor:pointer;flex-shrink:0;" onclick="showToast('验证码已发送')">获取验证码</button>
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:24px;">
+        <button class="btn btn-primary" onclick="goPage('page-patients')">登录</button>
+      </div>
+      <div style="text-align:center;margin-top:16px;">
+        <span style="font-size:12px;color:var(--text-3);">登录即表示同意 <a href="#" style="color:var(--accent);">用户协议</a> 和 <a href="#" style="color:var(--accent);">隐私政策</a></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== DOCTOR REGISTER ==================== -->
+<div id="page-doc-register" class="page" style="background:#fff;">
+  <div class="header" style="background:var(--accent);">
+    <div class="header-back" onclick="goBack()">‹</div>
+    <div class="header-title">完善医生信息</div>
+  </div>
+  <div class="page-body">
+    <div style="padding:20px 24px;">
+      <div style="font-size:15px;color:var(--text-2);margin-bottom:20px;">请填写您的专业信息，提交后需要管理员审核</div>
+      <div class="form-group">
+        <label class="form-label">真实姓名 <span style="color:var(--danger);">*</span></label>
+        <input class="form-input" placeholder="请输入真实姓名" value="李明华">
+      </div>
+      <div class="form-group">
+        <label class="form-label">所在医院 <span style="color:var(--danger);">*</span></label>
+        <input class="form-input" placeholder="请输入医院名称" value="北京协和医院">
+      </div>
+      <div style="display:flex;gap:10px;">
+        <div class="form-group" style="flex:1;">
+          <label class="form-label">科室 <span style="color:var(--danger);">*</span></label>
+          <select class="form-input form-select">
+            <option>内分泌科</option><option>营养科</option><option>全科</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label class="form-label">职称 <span style="color:var(--danger);">*</span></label>
+          <select class="form-input form-select">
+            <option>主任医师</option><option>副主任医师</option><option>主治医师</option><option>住院医师</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">执业编号 <span style="color:var(--danger);">*</span></label>
+        <input class="form-input" placeholder="请输入医师执业编号" value="110108199001011234">
+      </div>
+      <div class="form-group">
+        <label class="form-label">擅长领域</label>
+        <textarea class="form-input" placeholder="请描述您的擅长领域">1型糖尿病、胰岛素泵管理、糖尿病并发症预防</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">个人简介</label>
+        <textarea class="form-input" placeholder="请简要介绍自己">从事内分泌科临床工作15年，擅长1型及2型糖尿病的诊治，在胰岛素泵治疗方面有丰富经验。</textarea>
+      </div>
+      <div class="form-group" style="margin-top:24px;">
+        <button class="btn btn-primary" onclick="showToast('提交成功，等待审核'); setTimeout(()=>goPage('page-patients'), 500)">提交审核</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PATIENTS LIST (Tab 1) ==================== -->
+<div id="page-patients" class="page">
+  <div class="header" style="background:var(--accent);">
+    <div class="header-title">我的患者</div>
+    <div class="header-right">🔔</div>
+  </div>
+  <div class="search-bar">
+    <div class="search-input-wrap">
+      <span class="search-icon">🔍</span>
+      <input placeholder="搜索患者姓名">
+    </div>
+  </div>
+  <div class="page-body has-tab">
+    <!-- Summary Stats -->
+    <div class="card" style="margin-top:12px;">
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-value" style="color:var(--accent);">28</div>
+          <div class="stat-label">管理患者</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" style="color:var(--warning);">5</div>
+          <div class="stat-label">今日异常</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" style="color:var(--danger);">2</div>
+          <div class="stat-label">待处理</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending Requests -->
+    <div class="section-title">待处理 <span class="pending-badge" style="margin-left:6px;">2</span></div>
+    <div class="patient-card" onclick="showToast('已通过绑定申请')">
+      <div class="avatar" style="background:#FFF0F5;color:#E91E8C;">赵</div>
+      <div class="patient-info">
+        <div class="patient-name">赵小红</div>
+        <div style="font-size:12px;color:var(--text-3);">申请绑定 · 2分钟前</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();showToast('已通过')">通过</button>
+        <button class="btn btn-outline btn-sm" style="color:var(--text-3);border-color:var(--border);" onclick="event.stopPropagation();showToast('已拒绝')">拒绝</button>
+      </div>
+    </div>
+
+    <!-- Alert Patients -->
+    <div class="section-title">⚠️ 血糖异常患者</div>
+    <div class="patient-card" onclick="goPage('page-patient-detail')">
+      <div class="avatar" style="background:#FFF0F0;color:var(--danger);">王</div>
+      <div class="patient-info">
+        <div class="patient-name">王大明 <span class="tag tag-red" style="margin-left:4px;">高血糖</span></div>
+        <div class="patient-tags">
+          <span class="tag tag-blue">1型</span>
+          <span class="tag tag-green">CSII</span>
+        </div>
+        <div class="patient-stats">
+          <div class="patient-stat">最近血糖: <strong class="bs-danger">15.2</strong> mmol/L</div>
+          <div class="patient-stat">30分钟前</div>
+        </div>
+      </div>
+    </div>
+    <div class="patient-card" onclick="goPage('page-patient-detail')">
+      <div class="avatar" style="background:#EBF5FF;color:var(--info);">张</div>
+      <div class="patient-info">
+        <div class="patient-name">张小丽 <span class="tag tag-yellow" style="margin-left:4px;">偏低</span></div>
+        <div class="patient-tags">
+          <span class="tag tag-blue">1型</span>
+          <span class="tag tag-green">MDI</span>
+        </div>
+        <div class="patient-stats">
+          <div class="patient-stat">最近血糖: <strong class="bs-low">3.2</strong> mmol/L</div>
+          <div class="patient-stat">1小时前</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- All Patients -->
+    <div class="section-title">全部患者</div>
+    <div class="patient-card" onclick="goPage('page-patient-detail')">
+      <div class="avatar" style="background:#E8F8F0;color:#1AAD6E;">明</div>
+      <div class="patient-info">
+        <div class="patient-name">糖友小明</div>
+        <div class="patient-tags">
+          <span class="tag tag-blue">1型</span>
+          <span class="tag tag-green">CSII</span>
+        </div>
+        <div class="patient-stats">
+          <div class="patient-stat">今日: <strong class="bs-normal">6.2</strong> 均值</div>
+          <div class="patient-stat">5次记录</div>
+        </div>
+      </div>
+    </div>
+    <div class="patient-card" onclick="goPage('page-patient-detail')">
+      <div class="avatar" style="background:#FFF8E6;color:#B8860B;">陈</div>
+      <div class="patient-info">
+        <div class="patient-name">陈大伟</div>
+        <div class="patient-tags">
+          <span class="tag tag-blue">2型</span>
+          <span class="tag tag-green">口服药</span>
+        </div>
+        <div class="patient-stats">
+          <div class="patient-stat">今日: <strong class="bs-normal">7.0</strong> 均值</div>
+          <div class="patient-stat">3次记录</div>
+        </div>
+      </div>
+    </div>
+    <div class="patient-card" onclick="goPage('page-patient-detail')">
+      <div class="avatar" style="background:#F0E8FE;color:#8B5CF6;">林</div>
+      <div class="patient-info">
+        <div class="patient-name">林小美</div>
+        <div class="patient-tags">
+          <span class="tag tag-blue">妊娠期</span>
+          <span class="tag tag-green">MDI</span>
+        </div>
+        <div class="patient-stats">
+          <div class="patient-stat">今日: <strong class="bs-high">7.8</strong> 均值</div>
+          <div class="patient-stat">4次记录</div>
+        </div>
+      </div>
+    </div>
+    <div class="patient-card" onclick="goPage('page-patient-detail')">
+      <div class="avatar" style="background:#E8F8F0;color:#1AAD6E;">刘</div>
+      <div class="patient-info">
+        <div class="patient-name">刘强</div>
+        <div class="patient-tags">
+          <span class="tag tag-blue">2型</span>
+          <span class="tag tag-green">生活方式</span>
+        </div>
+        <div class="patient-stats">
+          <div class="patient-stat">今日: <strong class="bs-normal">5.9</strong> 均值</div>
+          <div class="patient-stat">2次记录</div>
+        </div>
+      </div>
+    </div>
+    <div style="height:20px;"></div>
+  </div>
+  <!-- Tab Bar -->
+  <div class="tab-bar" id="doc-tab">
+    <div class="tab-item active" onclick="switchTab('page-patients', this)"><div class="tab-icon">👥</div><span>患者</span></div>
+    <div class="tab-item" onclick="switchTab('page-doc-messages', this)"><div class="tab-icon tab-badge">💬</div><span>消息</span></div>
+    <div class="tab-item" onclick="switchTab('page-doc-profile', this)"><div class="tab-icon">👤</div><span>我的</span></div>
+  </div>
+</div>
+
+<!-- ==================== PATIENT DETAIL ==================== -->
+<div id="page-patient-detail" class="page sub-page">
+  <div class="header" style="background:var(--accent);">
+    <div class="header-back" onclick="goBack()">‹</div>
+    <div class="header-title">患者详情</div>
+    <div class="header-right" onclick="goPage('page-doc-chat')">💬</div>
+  </div>
+  <div class="page-body">
+    <!-- Patient Header -->
+    <div class="detail-header">
+      <div class="avatar avatar-lg" style="background:rgba(255,255,255,0.2);color:#fff;">明</div>
+      <div class="detail-info">
+        <div class="detail-name">糖友小明</div>
+        <div class="detail-meta">男 · 35岁 · 1型糖尿病 · 胰岛素泵(CSII)</div>
+        <div class="detail-meta">确诊时间: 2025-04-10 · 已管理 328 天</div>
+      </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="card" style="margin-top:12px;">
+      <div class="card-title">今日数据</div>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-value bs-normal">6.2</div>
+          <div class="stat-label">平均血糖</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">5</div>
+          <div class="stat-label">记录次数</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value bs-normal">80%</div>
+          <div class="stat-label">达标率</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Blood Sugar Trend -->
+    <div class="card">
+      <div class="card-title">
+        血糖趋势
+        <div style="display:flex;gap:4px;">
+          <span class="filter-tab active" style="font-size:11px;padding:3px 10px;" onclick="filterSelect(this)">7天</span>
+          <span class="filter-tab" style="font-size:11px;padding:3px 10px;" onclick="filterSelect(this)">30天</span>
+        </div>
+      </div>
+      <div class="chart-area">
+        <canvas id="detail-chart" class="chart-canvas"></canvas>
+      </div>
+    </div>
+
+    <!-- Health Profile Summary -->
+    <div class="card">
+      <div class="card-title">健康档案</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;">
+        <div><span style="color:var(--text-3);">身高:</span> 175 cm</div>
+        <div><span style="color:var(--text-3);">体重:</span> 68 kg</div>
+        <div><span style="color:var(--text-3);">BMI:</span> 22.2</div>
+        <div><span style="color:var(--text-3);">治疗:</span> CSII</div>
+      </div>
+    </div>
+
+    <!-- Recent Records -->
+    <div class="card">
+      <div class="card-title">最近记录</div>
+      <div class="record-item">
+        <div class="record-icon" style="background:#FFF0F0;">🩸</div>
+        <div class="record-content"><div class="record-title">午餐后血糖</div><div class="record-meta">今天 12:30</div></div>
+        <div class="record-value bs-high">8.5</div>
+      </div>
+      <div class="record-item">
+        <div class="record-icon" style="background:#FFF8E6;">🍱</div>
+        <div class="record-content"><div class="record-title">午餐 · 米饭+青菜+鸡胸肉</div><div class="record-meta">今天 12:00 · 碳水 65g</div></div>
+        <div></div>
+      </div>
+      <div class="record-item">
+        <div class="record-icon" style="background:#E8F8F0;">💊</div>
+        <div class="record-content"><div class="record-title">诺和锐 · 8U · 腹部</div><div class="record-meta">今天 11:55</div></div>
+        <div></div>
+      </div>
+      <div class="record-item">
+        <div class="record-icon" style="background:#FFF0F0;">🩸</div>
+        <div class="record-content"><div class="record-title">午餐前血糖</div><div class="record-meta">今天 11:50</div></div>
+        <div class="record-value bs-normal">5.8</div>
+      </div>
+      <div class="record-item">
+        <div class="record-icon" style="background:#FFF0F0;">🩸</div>
+        <div class="record-content"><div class="record-title">空腹血糖</div><div class="record-meta">今天 07:00</div></div>
+        <div class="record-value bs-normal">5.2</div>
+      </div>
+    </div>
+
+    <!-- Action -->
+    <div style="padding:0 16px 24px;">
+      <button class="btn btn-primary" onclick="goPage('page-doc-chat')">发送消息给该患者</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== DOCTOR MESSAGES (Tab 2) ==================== -->
+<div id="page-doc-messages" class="page">
+  <div class="header" style="background:var(--accent);">
+    <div class="header-title">消息</div>
+  </div>
+  <div class="page-body has-tab">
+    <div class="msg-item" onclick="goPage('page-doc-chat')">
+      <div class="msg-avatar">
+        <div class="avatar" style="background:#E8F8F0;color:#1AAD6E;">明</div>
+        <div class="msg-unread">2</div>
+      </div>
+      <div class="msg-body">
+        <div class="msg-name">糖友小明 <span class="tag tag-blue" style="margin-left:4px;">1型</span></div>
+        <div class="msg-preview">好的，谢谢李医生！我试试减少碳水摄入</div>
+      </div>
+      <div class="msg-time">10:32</div>
+    </div>
+    <div class="msg-item" onclick="goPage('page-doc-chat')">
+      <div class="msg-avatar">
+        <div class="avatar" style="background:#FFF0F0;color:var(--danger);">王</div>
+        <div class="msg-unread">!</div>
+      </div>
+      <div class="msg-body">
+        <div class="msg-name">王大明 <span class="tag tag-red" style="margin-left:4px;">⚠ 异常</span></div>
+        <div class="msg-preview">[血糖记录] 15.2 mmol/L · 晚餐后</div>
+      </div>
+      <div class="msg-time">09:15</div>
+    </div>
+    <div class="msg-item" onclick="goPage('page-doc-chat')">
+      <div class="msg-avatar">
+        <div class="avatar" style="background:#FFF8E6;color:#B8860B;">陈</div>
+      </div>
+      <div class="msg-body">
+        <div class="msg-name">陈大伟 <span class="tag tag-blue" style="margin-left:4px;">2型</span></div>
+        <div class="msg-preview">医生，我最近换了二甲双胍缓释片，需要注意什么？</div>
+      </div>
+      <div class="msg-time">昨天</div>
+    </div>
+    <div class="msg-item" onclick="goPage('page-doc-chat')">
+      <div class="msg-avatar">
+        <div class="avatar" style="background:#F0E8FE;color:#8B5CF6;">林</div>
+      </div>
+      <div class="msg-body">
+        <div class="msg-name">林小美 <span class="tag tag-blue" style="margin-left:4px;">妊娠期</span></div>
+        <div class="msg-preview">产检报告出来了，帮我看看</div>
+      </div>
+      <div class="msg-time">周三</div>
+    </div>
+    <div class="msg-item" onclick="goPage('page-doc-chat')">
+      <div class="msg-avatar">
+        <div class="avatar" style="background:#EBF5FF;color:var(--info);">张</div>
+      </div>
+      <div class="msg-body">
+        <div class="msg-name">张小丽 <span class="tag tag-blue" style="margin-left:4px;">1型</span></div>
+        <div class="msg-preview">谢谢医生的建议，我已经调整了基础率</div>
+      </div>
+      <div class="msg-time">周二</div>
+    </div>
+  </div>
+  <div class="tab-bar">
+    <div class="tab-item" onclick="switchTab('page-patients', this)"><div class="tab-icon">👥</div><span>患者</span></div>
+    <div class="tab-item active" onclick="switchTab('page-doc-messages', this)"><div class="tab-icon tab-badge">💬</div><span>消息</span></div>
+    <div class="tab-item" onclick="switchTab('page-doc-profile', this)"><div class="tab-icon">👤</div><span>我的</span></div>
+  </div>
+</div>
+
+<!-- ==================== DOCTOR CHAT ==================== -->
+<div id="page-doc-chat" class="page sub-page">
+  <div class="header" style="background:var(--accent);">
+    <div class="header-back" onclick="goBack()">‹</div>
+    <div class="header-title">糖友小明</div>
+    <div class="header-right" onclick="goPage('page-patient-detail')" style="font-size:12px;">档案</div>
+  </div>
+  <div class="page-body" style="background:#F5F5F5;display:flex;flex-direction:column;">
+    <!-- Patient Quick View -->
+    <div style="background:#fff;padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <div style="font-size:12px;color:var(--text-3);">最近血糖: <strong class="bs-high" style="font-size:14px;">8.5</strong> mmol/L (午餐后 12:30)</div>
+      <span class="tag tag-yellow">偏高</span>
+    </div>
+    <div class="chat-body" style="flex:1;overflow-y:auto;">
+      <div class="chat-time">今天 10:20</div>
+      <div class="chat-msg">
+        <div class="avatar avatar-sm" style="background:#E8F8F0;color:#1AAD6E;">明</div>
+        <div class="chat-bubble">
+          <div class="bs-card">
+            <div class="bs-card-title">📊 血糖记录</div>
+            <div class="bs-card-row">
+              <div>
+                <div style="font-size:11px;color:var(--text-3);">午餐后 · 12:30</div>
+                <div style="font-size:24px;font-weight:700;color:var(--warning);">8.5 <span style="font-size:12px;font-weight:400;">mmol/L</span></div>
+              </div>
+              <span class="tag tag-yellow">偏高</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="chat-msg">
+        <div class="avatar avatar-sm" style="background:#E8F8F0;color:#1AAD6E;">明</div>
+        <div class="chat-bubble">李医生，我今天午餐后血糖有点高，是不是午餐碳水吃多了？</div>
+      </div>
+      <div class="chat-msg self">
+        <div class="chat-bubble">看了你的记录，午餐碳水65g确实偏多了。建议控制在45-50g。另外注意进餐顺序，先吃蔬菜和蛋白质。</div>
+      </div>
+      <div class="chat-msg self">
+        <div class="chat-bubble">你最近几天空腹血糖都在5左右，控制得不错，继续保持！💪</div>
+      </div>
+      <div class="chat-time">10:30</div>
+      <div class="chat-msg self">
+        <div class="chat-bubble">如果餐后2小时血糖经常超过8，可以考虑餐前胰岛素加1-2个单位，但要注意监测，避免低血糖。</div>
+      </div>
+      <div class="chat-msg">
+        <div class="avatar avatar-sm" style="background:#E8F8F0;color:#1AAD6E;">明</div>
+        <div class="chat-bubble">好的，谢谢李医生！我试试减少碳水摄入，明天午餐换成糙米饭。</div>
+      </div>
+    </div>
+  </div>
+  <div class="chat-input-bar">
+    <div style="font-size:20px;cursor:pointer;">📷</div>
+    <input class="chat-input" placeholder="输入消息..." id="doc-chat-input">
+    <button class="btn btn-primary chat-send btn-sm" onclick="sendDocMsg()">发送</button>
+  </div>
+</div>
+
+<!-- ==================== DOCTOR PROFILE (Tab 3) ==================== -->
+<div id="page-doc-profile" class="page">
+  <div class="page-body has-tab" style="background:var(--bg);">
+    <div class="profile-header" style="background:var(--accent);">
+      <div class="avatar avatar-lg" style="background:rgba(255,255,255,0.2);color:#fff;">李</div>
+      <div class="profile-info">
+        <div class="profile-name">李明华</div>
+        <div class="profile-meta">北京协和医院 · 内分泌科 · 主任医师</div>
+        <div style="margin-top:6px;">
+          <span class="verify-badge verify-approved">✓ 已认证</span>
+        </div>
+      </div>
+    </div>
+    <div class="profile-menu">
+      <div class="cell cell-arrow" onclick="goPage('page-doc-register')">
+        <div class="cell-icon" style="background:var(--accent-light);color:var(--accent);">📋</div>
+        <div class="cell-body"><div class="cell-title">专业信息</div></div>
+      </div>
+      <div class="cell cell-arrow">
+        <div class="cell-icon" style="background:#E8F8F0;color:#1AAD6E;">📊</div>
+        <div class="cell-body"><div class="cell-title">工作统计</div></div>
+        <div class="cell-right">管理28位患者</div>
+      </div>
+      <div class="cell cell-arrow">
+        <div class="cell-icon" style="background:#FFF8E6;color:#B8860B;">🔔</div>
+        <div class="cell-body"><div class="cell-title">通知设置</div></div>
+      </div>
+    </div>
+    <div class="profile-menu">
+      <div class="cell cell-arrow">
+        <div class="cell-icon" style="background:#F5F5F5;color:var(--text-2);">⚙️</div>
+        <div class="cell-body"><div class="cell-title">设置</div></div>
+      </div>
+      <div class="cell cell-arrow">
+        <div class="cell-icon" style="background:#F5F5F5;color:var(--text-2);">❓</div>
+        <div class="cell-body"><div class="cell-title">帮助与反馈</div></div>
+      </div>
+      <div class="cell cell-arrow">
+        <div class="cell-icon" style="background:#F5F5F5;color:var(--text-2);">ℹ️</div>
+        <div class="cell-body"><div class="cell-title">关于雷檬云</div></div>
+      </div>
+    </div>
+    <div style="padding:20px 16px;">
+      <button class="btn btn-outline" onclick="goPage('page-login')" style="color:var(--danger);border-color:var(--danger);">退出登录</button>
+    </div>
+  </div>
+  <div class="tab-bar">
+    <div class="tab-item" onclick="switchTab('page-patients', this)"><div class="tab-icon">👥</div><span>患者</span></div>
+    <div class="tab-item" onclick="switchTab('page-doc-messages', this)"><div class="tab-icon tab-badge">💬</div><span>消息</span></div>
+    <div class="tab-item active" onclick="switchTab('page-doc-profile', this)"><div class="tab-icon">👤</div><span>我的</span></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<script>
+let pageHistory = ['page-login'];
+
+function goPage(id) {
+  document.querySelectorAll('.page.active').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  pageHistory.push(id);
+  if (id === 'page-patient-detail') setTimeout(drawDetailChart, 100);
+}
+
+function goBack() {
+  pageHistory.pop();
+  const prev = pageHistory[pageHistory.length - 1] || 'page-patients';
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(prev).classList.add('active');
+}
+
+function switchTab(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+  const tabBar = el.parentElement;
+  const idx = Array.from(tabBar.children).indexOf(el);
+  document.querySelectorAll('.tab-bar').forEach(tb => { if (tb.children[idx]) tb.children[idx].classList.add('active'); });
+  pageHistory = [id];
+}
+
+function filterSelect(el) {
+  el.parentElement.querySelectorAll('.filter-tab').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function sendDocMsg() {
+  const input = document.getElementById('doc-chat-input');
+  if (!input.value.trim()) return;
+  const body = document.querySelector('#page-doc-chat .chat-body');
+  const msg = document.createElement('div');
+  msg.className = 'chat-msg self';
+  msg.innerHTML = '<div class="chat-bubble">' + input.value + '</div>';
+  body.appendChild(msg);
+  input.value = '';
+  body.scrollTop = body.scrollHeight;
+  setTimeout(() => {
+    const reply = document.createElement('div');
+    reply.className = 'chat-msg';
+    reply.innerHTML = '<div class="avatar avatar-sm" style="background:#E8F8F0;color:#1AAD6E;">明</div><div class="chat-bubble">好的，收到医生的建议，谢谢！</div>';
+    body.appendChild(reply);
+    body.scrollTop = body.scrollHeight;
+  }, 1200);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function drawDetailChart() {
+  const canvas = document.getElementById('detail-chart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.parentElement.offsetWidth;
+  const h = canvas.parentElement.offsetHeight;
+  canvas.width = w * 2; canvas.height = h * 2;
+  canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+  ctx.scale(2, 2);
+  const padding = { top: 20, right: 20, bottom: 30, left: 36 };
+  const cw = w - padding.left - padding.right;
+  const ch = h - padding.top - padding.bottom;
+  const days = ['2/22','2/23','2/24','2/25','2/26','2/27','2/28'];
+  const avgData = [5.8, 6.2, 7.1, 5.5, 6.0, 7.8, 6.2];
+  const maxData = [7.2, 8.1, 9.5, 7.0, 7.2, 12.3, 8.5];
+  const minData = [4.5, 4.8, 5.2, 4.1, 4.9, 5.5, 5.2];
+  const minY = 2, maxY = 14;
+  const yScale = ch / (maxY - minY);
+  ctx.fillStyle = 'rgba(59,130,246,0.06)';
+  const ny1 = padding.top + (maxY - 10) * yScale;
+  const ny2 = padding.top + (maxY - 3.9) * yScale;
+  ctx.fillRect(padding.left, ny1, cw, ny2 - ny1);
+  ctx.strokeStyle = '#EBEDF0'; ctx.lineWidth = 0.5;
+  for (let v = 4; v <= 12; v += 2) {
+    const y = padding.top + (maxY - v) * yScale;
+    ctx.beginPath(); ctx.moveTo(padding.left, y); ctx.lineTo(w - padding.right, y); ctx.stroke();
+    ctx.fillStyle = '#969799'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(v.toString(), padding.left - 6, y + 3);
+  }
+  ctx.beginPath(); ctx.fillStyle = 'rgba(59,130,246,0.1)';
+  days.forEach((_, i) => {
+    const x = padding.left + (i / (days.length - 1)) * cw;
+    const y = padding.top + (maxY - maxData[i]) * yScale;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  for (let i = days.length - 1; i >= 0; i--) {
+    const x = padding.left + (i / (days.length - 1)) * cw;
+    const y = padding.top + (maxY - minData[i]) * yScale;
+    ctx.lineTo(x, y);
+  }
+  ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.strokeStyle = '#3B82F6'; ctx.lineWidth = 2; ctx.lineJoin = 'round';
+  avgData.forEach((v, i) => {
+    const x = padding.left + (i / (days.length - 1)) * cw;
+    const y = padding.top + (maxY - v) * yScale;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  avgData.forEach((v, i) => {
+    const x = padding.left + (i / (days.length - 1)) * cw;
+    const y = padding.top + (maxY - v) * yScale;
+    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fillStyle = '#3B82F6'; ctx.fill();
+    ctx.fillStyle = '#969799'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(days[i], x, h - 8);
+  });
+}
+</script>
+</body>
+</html>

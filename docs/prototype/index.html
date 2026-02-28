@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>雷檬云 - 产品原型预览</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+  background: #0f172a;
+  color: #e2e8f0;
+  min-height: 100vh;
+}
+
+.hero {
+  text-align: center;
+  padding: 48px 24px 32px;
+}
+.hero-icon { font-size: 56px; }
+.hero-title {
+  font-size: 32px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #34d399, #3b82f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-top: 12px;
+}
+.hero-sub {
+  font-size: 16px;
+  color: #94a3b8;
+  margin-top: 8px;
+}
+
+.devices {
+  display: flex;
+  justify-content: center;
+  gap: 48px;
+  padding: 24px;
+  flex-wrap: wrap;
+}
+
+.device-wrap {
+  text-align: center;
+}
+.device-label {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.device-label .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dot-green { background: #34d399; }
+.dot-blue { background: #3b82f6; }
+
+.phone-frame {
+  width: 375px;
+  height: 720px;
+  border-radius: 40px;
+  border: 4px solid #334155;
+  background: #1e293b;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.5), inset 0 0 0 2px #475569;
+}
+.phone-frame::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 150px;
+  height: 28px;
+  background: #1e293b;
+  border-radius: 0 0 20px 20px;
+  z-index: 10;
+}
+.phone-frame iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 36px;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 16px;
+}
+.action-btn {
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+.action-btn:hover { transform: translateY(-1px); }
+.btn-green { background: #34d399; color: #0f172a; }
+.btn-blue { background: #3b82f6; color: #fff; }
+.btn-outline-light { background: transparent; color: #94a3b8; border: 1px solid #475569; }
+
+.info-section {
+  max-width: 900px;
+  margin: 48px auto;
+  padding: 0 24px;
+}
+.info-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #334155;
+}
+.page-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+}
+.page-item {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 14px;
+}
+.page-item-name { font-weight: 500; color: #e2e8f0; }
+.page-item-desc { font-size: 12px; color: #64748b; margin-top: 4px; }
+
+.footer {
+  text-align: center;
+  padding: 32px;
+  color: #475569;
+  font-size: 13px;
+}
+</style>
+</head>
+<body>
+  <div class="hero">
+    <div class="hero-icon">🍋</div>
+    <div class="hero-title">雷檬云 · 产品原型</div>
+    <div class="hero-sub">糖尿病健康管理平台 — P0 交互原型预览</div>
+  </div>
+
+  <div class="devices">
+    <!-- Patient -->
+    <div class="device-wrap">
+      <div class="device-label"><span class="dot dot-green"></span> 患者端</div>
+      <div class="phone-frame">
+        <iframe src="patient.html" id="patient-frame"></iframe>
+      </div>
+      <div class="actions">
+        <button class="action-btn btn-green" onclick="window.open('patient.html', '_blank')">全屏打开</button>
+        <button class="action-btn btn-outline-light" onclick="document.getElementById('patient-frame').contentWindow.location.reload()">重新加载</button>
+      </div>
+    </div>
+
+    <!-- Doctor -->
+    <div class="device-wrap">
+      <div class="device-label"><span class="dot dot-blue"></span> 医生端</div>
+      <div class="phone-frame">
+        <iframe src="doctor.html" id="doctor-frame"></iframe>
+      </div>
+      <div class="actions">
+        <button class="action-btn btn-blue" onclick="window.open('doctor.html', '_blank')">全屏打开</button>
+        <button class="action-btn btn-outline-light" onclick="document.getElementById('doctor-frame').contentWindow.location.reload()">重新加载</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Page List -->
+  <div class="info-section">
+    <div class="info-title">📱 患者端页面清单</div>
+    <div class="page-list">
+      <div class="page-item"><div class="page-item-name">登录/注册</div><div class="page-item-desc">手机号 + 短信验证码</div></div>
+      <div class="page-item"><div class="page-item-name">角色选择</div><div class="page-item-desc">患者 / 医生身份选择</div></div>
+      <div class="page-item"><div class="page-item-name">患者注册</div><div class="page-item-desc">填写健康基本信息</div></div>
+      <div class="page-item"><div class="page-item-name">首页</div><div class="page-item-desc">今日血糖概览 + 快捷记录 + 最近记录</div></div>
+      <div class="page-item"><div class="page-item-name">记录血糖</div><div class="page-item-desc">血糖值 + 测量时段 + 时间 + 备注</div></div>
+      <div class="page-item"><div class="page-item-name">记录饮食</div><div class="page-item-desc">餐次 + 食物明细 + 碳水统计 + 拍照</div></div>
+      <div class="page-item"><div class="page-item-name">记录用药</div><div class="page-item-desc">胰岛素/口服药 + 剂量 + 注射部位</div></div>
+      <div class="page-item"><div class="page-item-name">健康记录</div><div class="page-item-desc">7天/30天趋势图 + 按日期分组列表</div></div>
+      <div class="page-item"><div class="page-item-name">消息列表</div><div class="page-item-desc">医生会话列表 + 未读提示</div></div>
+      <div class="page-item"><div class="page-item-name">聊天详情</div><div class="page-item-desc">文字/图片/血糖卡片消息</div></div>
+      <div class="page-item"><div class="page-item-name">个人中心</div><div class="page-item-desc">个人信息 + 健康档案 + 设置</div></div>
+      <div class="page-item"><div class="page-item-name">健康档案</div><div class="page-item-desc">基本/疾病/身体指标信息展示</div></div>
+      <div class="page-item"><div class="page-item-name">绑定医生</div><div class="page-item-desc">搜索 + 推荐 + 已绑定医生</div></div>
+    </div>
+  </div>
+
+  <div class="info-section">
+    <div class="info-title">👨‍⚕️ 医生端页面清单</div>
+    <div class="page-list">
+      <div class="page-item"><div class="page-item-name">登录</div><div class="page-item-desc">手机号 + 短信验证码</div></div>
+      <div class="page-item"><div class="page-item-name">医生注册</div><div class="page-item-desc">医院/科室/职称/执业编号等</div></div>
+      <div class="page-item"><div class="page-item-name">患者列表</div><div class="page-item-desc">统计 + 异常提醒 + 待处理 + 全部患者</div></div>
+      <div class="page-item"><div class="page-item-name">患者详情</div><div class="page-item-desc">健康档案 + 血糖趋势 + 最近记录</div></div>
+      <div class="page-item"><div class="page-item-name">消息列表</div><div class="page-item-desc">患者会话列表 + 异常标记</div></div>
+      <div class="page-item"><div class="page-item-name">聊天详情</div><div class="page-item-desc">患者血糖速览 + 消息收发</div></div>
+      <div class="page-item"><div class="page-item-name">个人中心</div><div class="page-item-desc">专业信息 + 认证状态 + 设置</div></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    雷檬云 · 糖尿病健康管理平台 · P0 产品原型 v1.0
+  </div>
+</body>
+</html>
