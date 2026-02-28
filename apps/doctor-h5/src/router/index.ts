@@ -1,66 +1,35 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import type { RouteRecordRaw } from 'vue-router'
-import { useUserStore } from '@/stores/user'
 
-const routes: RouteRecordRaw[] = [
+const routes = [
   {
     path: '/login',
     name: 'Login',
-    component: () => import('@/views/auth/Login.vue'),
-    meta: { requiresAuth: false },
+    component: () => import('@/views/auth/LoginPage.vue'),
   },
   {
-    path: '/register',
-    name: 'Register',
-    component: () => import('@/views/auth/Register.vue'),
-    meta: { requiresAuth: false },
+    path: '/',
+    component: () => import('@/components/TabLayout.vue'),
+    children: [
+      { path: '', name: 'Patients', component: () => import('@/views/patients/PatientsPage.vue') },
+      { path: 'messages', name: 'Messages', component: () => import('@/views/messages/MessagesPage.vue') },
+      { path: 'profile', name: 'Profile', component: () => import('@/views/profile/ProfilePage.vue') },
+    ],
   },
   {
-    path: '/patients',
-    name: 'Patients',
-    component: () => import('@/views/patients/Patients.vue'),
-    meta: { showTabBar: true },
-  },
-  {
-    path: '/patients/:id',
+    path: '/patient/:id',
     name: 'PatientDetail',
-    component: () => import('@/views/patients/PatientDetail.vue'),
-  },
-  {
-    path: '/messages',
-    name: 'Messages',
-    component: () => import('@/views/messages/Messages.vue'),
-    meta: { showTabBar: true },
+    component: () => import('@/views/patient-detail/PatientDetailPage.vue'),
   },
   {
     path: '/chat/:id',
     name: 'Chat',
-    component: () => import('@/views/chat/Chat.vue'),
-  },
-  {
-    path: '/profile',
-    name: 'Profile',
-    component: () => import('@/views/profile/Profile.vue'),
-    meta: { showTabBar: true },
-  },
-  {
-    path: '/',
-    redirect: '/patients',
+    component: () => import('@/views/chat/ChatPage.vue'),
   },
 ]
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
-})
-
-router.beforeEach((to) => {
-  const userStore = useUserStore()
-  const requiresAuth = to.meta.requiresAuth !== false
-
-  if (requiresAuth && !userStore.isLoggedIn) {
-    return { name: 'Login', query: { redirect: to.fullPath } }
-  }
 })
 
 export default router

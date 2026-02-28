@@ -1,41 +1,13 @@
 :root {
-  --doctor-primary: #3B82F6;
-  --doctor-primary-light: #E8F0FE;
-  --doctor-primary-dark: #2563EB;
+  --primary: #3B82F6;
+  --primary-light: #E8F0FE;
   --danger: #FF4D4F;
   --warning: #FFB020;
-  --success: #1AAD6E;
-  --bg: #F7F8FA;
-  --card: #FFFFFF;
-  --border: #EBEDF0;
-  --text-1: #323233;
-  --text-2: #646566;
-  --text-3: #969799;
-  --text-4: #C8C9CC;
 }
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-}
-
-html,
+* { margin: 0; padding: 0; box-sizing: border-box; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
-  background: var(--bg);
-  color: var(--text-1);
-  font-size: 14px;
-  line-height: 1.5;
-  height: 100%;
+  background: #f7f8fa; color: #323233;
+  -webkit-font-smoothing: antialiased;
 }
-
-#app {
-  height: 100%;
-}
-
-a {
-  color: var(--doctor-primary);
-  text-decoration: none;
-}
+:root:root { --van-primary-color: #3B82F6; }

@@ -1,41 +1,20 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-
-export interface DoctorInfo {
-  id: string
-  phone: string
-  realName: string
-  hospital: string
-  department: string
-  title: string
-  licenseNo: string
-  specialties?: string
-  bio?: string
-  avatar?: string
-  verifyStatus: string
-}
+import { ref } from 'vue'
 
 export const useUserStore = defineStore('user', () => {
-  const token = ref(localStorage.getItem('doctor_token') || '')
-  const doctor = ref<DoctorInfo | null>(null)
-
-  const isLoggedIn = computed(() => !!token.value)
-  const isVerified = computed(() => doctor.value?.verifyStatus === 'APPROVED')
+  const token = ref(localStorage.getItem('token') || '')
+  const userInfo = ref<any>(null)
 
   function setToken(t: string) {
     token.value = t
-    localStorage.setItem('doctor_token', t)
-  }
-
-  function setDoctor(info: DoctorInfo) {
-    doctor.value = info
+    localStorage.setItem('token', t)
   }
 
   function logout() {
     token.value = ''
-    doctor.value = null
-    localStorage.removeItem('doctor_token')
+    userInfo.value = null
+    localStorage.removeItem('token')
   }
 
-  return { token, doctor, isLoggedIn, isVerified, setToken, setDoctor, logout }
+  return { token, userInfo, setToken, logout }
 })
