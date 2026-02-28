@@ -1,32 +1,88 @@
 <template>
   <div class="records-page">
     <van-nav-bar title="健康记录" />
-    <van-tabs v-model:active="activeTab">
-      <van-tab title="全部" />
+    <van-tabs v-model:active="activeTab" @change="loadRecords">
       <van-tab title="血糖" />
       <van-tab title="饮食" />
       <van-tab title="用药" />
     </van-tabs>
-    <van-cell-group inset style="margin-top: 12px;">
-      <van-cell v-for="r in records" :key="r.id" :title="r.title" :label="r.time">
-        <template #value>
-          <span v-if="r.value" :style="{ color: r.color, fontWeight: 700 }">{{ r.value }}</span>
-        </template>
-      </van-cell>
-    </van-cell-group>
+    <van-pull-refresh v-model="refreshing" @refresh="loadRecords">
+      <template v-if="records.length">
+        <van-cell-group inset style="margin-top: 12px">
+          <van-cell v-for="r in records" :key="r.id" :title="r.title" :label="r.time">
+            <template #value>
+              <span v-if="r.value" :style="{ color: r.color, fontWeight: 700 }">{{ r.value }}</span>
+            </template>
+          </van-cell>
+        </van-cell-group>
+      </template>
+      <van-empty v-else description="暂无记录" />
+    </van-pull-refresh>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { getBloodSugars, getDiets, getMedications } from '@/api/health'
+import { MEASURE_TIME_LABELS, MEAL_TYPE_LABELS } from '@leimengyun/shared'
 
 const activeTab = ref(0)
-const records = ref([
-  { id: 1, title: '午餐后血糖', time: '今天 12:30', value: '8.5', color: '#FFB020' },
-  { id: 2, title: '午餐 · 米饭+青菜', time: '今天 12:00 · 碳水 65g', value: '', color: '' },
-  { id: 3, title: '诺和锐 · 8U', time: '今天 11:55', value: '', color: '' },
-  { id: 4, title: '午餐前血糖', time: '今天 11:50', value: '5.8', color: '#1AAD6E' },
-  { id: 5, title: '空腹血糖', time: '今天 07:00', value: '5.2', color: '#1AAD6E' },
-  { id: 6, title: '睡前血糖', time: '昨天 22:00', value: '6.8', color: '#1AAD6E' },
-])
+const refreshing = ref(false)
+const records = ref<any[]>([])
+
+function formatDateTime(dateStr: string) {
+  const d = new Date(dateStr)
+  const mm = (d.getMonth() + 1).toString().padStart(2, '0')
+  const dd = d.getDate().toString().padStart(2, '0')
+  const hh = d.getHours().toString().padStart(2, '0')
+  const mi = d.getMinutes().toString().padStart(2, '0')
+  return `${mm}-${dd} ${hh}:${mi}`
+}
+
+function getBsColor(v: number) {
+  if (v < 3.9) return '#3B82F6'
+  if (v <= 7.8) return '#1AAD6E'
+  if (v <= 11.1) return '#FFB020'
+  return '#FF4D4F'
+}
+
+async function loadRecords() {
+  refreshing.value = true
+  try {
+    if (activeTab.value === 0) {
+      const data = (await getBloodSugars(30)) as any[]
+      records.value = data.map((r) => ({
+        id: r.id,
+        title: (MEASURE_TIME_LABELS[r.measureTime] || r.measureTime) + '血糖',
+        time: formatDateTime(r.recordedAt),
+        value: r.value.toString(),
+        color: getBsColor(r.value),
+      }))
+    } else if (activeTab.value === 1) {
+      const data = (await getDiets(30)) as any[]
+      records.value = data.map((r) => ({
+        id: r.id,
+        title: (MEAL_TYPE_LABELS[r.mealType] || r.mealType) + ' · 碳水 ' + r.totalCarbs + 'g',
+        time: formatDateTime(r.recordedAt),
+        value: '',
+        color: '',
+      }))
+    } else {
+      const data = (await getMedications(30)) as any[]
+      records.value = data.map((r) => ({
+        id: r.id,
+        title: r.medName + ' · ' + r.dosage + r.dosageUnit,
+        time: formatDateTime(r.recordedAt),
+        value: '',
+        color: '',
+      }))
+    }
+  } catch {
+    records.value = []
+  } finally {
+    refreshing.value = false
+  }
+}
+
+onMounted(loadRecords)
 </script>

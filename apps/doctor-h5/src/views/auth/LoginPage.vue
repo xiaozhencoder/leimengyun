@@ -7,14 +7,16 @@
     </div>
     <div class="form-section">
       <van-form @submit="onSubmit">
-        <van-field v-model="phone" type="tel" placeholder="请输入手机号" maxlength="11" />
-        <van-field v-model="code" type="digit" placeholder="请输入验证码" maxlength="6">
+        <van-field v-model="phone" type="tel" placeholder="请输入手机号" maxlength="11"
+          :rules="[{ required: true, message: '请输入手机号' }]" />
+        <van-field v-model="code" type="digit" placeholder="请输入验证码" maxlength="6"
+          :rules="[{ required: true, message: '请输入验证码' }]">
           <template #button>
-            <van-button size="small" type="primary" @click="() => {}">获取验证码</van-button>
+            <van-button size="small" type="primary" @click.prevent="handleSendCode">获取验证码</van-button>
           </template>
         </van-field>
-        <div style="margin: 24px 16px;">
-          <van-button round block type="primary" native-type="submit">登录</van-button>
+        <div style="margin: 24px 16px">
+          <van-button round block type="primary" native-type="submit" :loading="loading">登录</van-button>
         </div>
       </van-form>
     </div>
@@ -24,16 +26,37 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { showToast, showFailToast } from 'vant'
 import { useUserStore } from '@/stores/user'
+import { login, sendCode } from '@/api/auth'
 
 const router = useRouter()
 const userStore = useUserStore()
-const phone = ref('13800138001')
+const phone = ref('')
 const code = ref('')
+const loading = ref(false)
 
-function onSubmit() {
-  userStore.setToken('demo-doctor-token')
-  router.push('/')
+async function handleSendCode() {
+  if (!phone.value || phone.value.length !== 11) { showToast('请输入正确的手机号'); return }
+  try { await sendCode(phone.value); showToast('验证码已发送（开发环境输入任意6位数字）') } catch { showFailToast('发送失败') }
+}
+
+async function onSubmit() {
+  loading.value = true
+  try {
+    const result: any = await login(phone.value, code.value)
+    userStore.setToken(result.token)
+    const userData = await userStore.fetchUser()
+    if (result.isNewUser || !userData?.doctorProfile) {
+      router.push('/register')
+    } else {
+      router.push('/')
+    }
+  } catch (err: any) {
+    showFailToast(err.response?.data?.message || '登录失败')
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 

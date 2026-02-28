@@ -1,14 +1,18 @@
 import client from './client'
 
-export function sendSmsCode(phone: string) {
-  return client.post('/auth/sms-code', { phone })
+export function sendCode(phone: string) {
+  return client.post('/auth/send-code', { phone })
 }
 
 export function login(phone: string, code: string) {
-  return client.post('/auth/login', { phone, code, role: 'DOCTOR' })
+  return client.post('/auth/login', { phone, code })
 }
 
-export function registerDoctor(data: {
+export function getMe() {
+  return client.get('/users/me')
+}
+
+export function createDoctorProfile(data: {
   realName: string
   hospital: string
   department: string
@@ -17,9 +21,5 @@ export function registerDoctor(data: {
   specialties?: string
   bio?: string
 }) {
-  return client.post('/auth/register/doctor', data)
-}
-
-export function getProfile() {
-  return client.get('/auth/profile')
+  return client.post('/users/doctor-profile', data)
 }
