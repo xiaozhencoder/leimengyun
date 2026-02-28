@@ -60,6 +60,12 @@ const routes = [
     component: () => import('@/views/chat/ChatPage.vue'),
     meta: { auth: true },
   },
+  {
+    path: '/bind-doctor',
+    name: 'BindDoctor',
+    component: () => import('@/views/profile/BindDoctorPage.vue'),
+    meta: { auth: true },
+  },
 ]
 
 const router = createRouter({
