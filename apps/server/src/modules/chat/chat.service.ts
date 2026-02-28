@@ -1,10 +1,15 @@
-import { Injectable, ForbiddenException } from '@nestjs/common'
+import { Injectable, ForbiddenException, Inject, forwardRef } from '@nestjs/common'
 import { PrismaService } from '../common/prisma.service'
+import { ChatGateway } from './chat.gateway'
 import { SendMessageDto } from './chat.dto'
 
 @Injectable()
 export class ChatService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(forwardRef(() => ChatGateway))
+    private gateway: ChatGateway,
+  ) {}
 
   async getConversations(userId: string) {
     const conversations = await this.prisma.conversation.findMany({
@@ -40,9 +45,7 @@ export class ChatService {
       const otherName = isPatient
         ? conv.doctor.doctorProfile?.realName || '医生'
         : conv.patient.patientProfile?.nickname || '患者'
-      const otherTag = isPatient
-        ? conv.doctor.doctorProfile?.department || ''
-        : ''
+      const otherTag = isPatient ? conv.doctor.doctorProfile?.department || '' : ''
 
       const lastMsg = await this.prisma.message.findFirst({
         where: { conversationId: conv.id },
@@ -114,11 +117,24 @@ export class ChatService {
       data: { lastMessageAt: new Date() },
     })
 
+    const receiverId = conv.patientId === senderId ? conv.doctorId : conv.patientId
+    this.gateway.pushNewMessage(receiverId, {
+      ...message,
+      conversationId: dto.conversationId,
+    })
+
+    this.gateway.pushConversationUpdate(receiverId, {
+      conversationId: dto.conversationId,
+      lastMessage: dto.content,
+      lastMessageAt: message.createdAt,
+      senderId,
+    })
+
     return message
   }
 
   async markRead(userId: string, conversationId: string) {
-    await this.prisma.message.updateMany({
+    const result = await this.prisma.message.updateMany({
       where: {
         conversationId,
         senderId: { not: userId },
@@ -126,6 +142,19 @@ export class ChatService {
       },
       data: { isRead: true },
     })
-    return { message: '已标记已读' }
+
+    if (result.count > 0) {
+      const conv = await this.prisma.conversation.findUnique({ where: { id: conversationId } })
+      if (conv) {
+        const otherUserId = conv.patientId === userId ? conv.doctorId : conv.patientId
+        this.gateway.pushConversationUpdate(otherUserId, {
+          conversationId,
+          messagesRead: true,
+          readBy: userId,
+        })
+      }
+    }
+
+    return { message: '已标记已读', count: result.count }
   }
 }
