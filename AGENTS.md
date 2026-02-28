@@ -20,7 +20,7 @@
 
 ### Key Development Notes
 
-- **Docker must be running** before starting the backend. Use `sudo dockerd &` if the daemon isn't started, then `docker compose up -d`.
+- **Docker must be running** before starting the backend. Use `sudo dockerd &` if the daemon isn't started, then `docker compose up -d`. In Cloud Agent VMs you may need `sudo chmod 666 /var/run/docker.sock` to fix permission errors.
 - **Prisma migrations**: Run `cd apps/server && npx prisma migrate dev` after schema changes.
 - **Prisma client**: Run `cd apps/server && npx prisma generate` after pulling schema changes.
 - **Backend TypeScript**: The server `tsconfig.json` has `incremental: false` due to a stale-cache issue with NestJS watch mode. Do not re-enable it.
