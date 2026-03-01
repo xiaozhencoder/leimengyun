@@ -31,7 +31,7 @@ export class ChatService {
             id: true,
             avatarUrl: true,
             role: true,
-            doctorProfile: { select: { realName: true, department: true } },
+            doctorProfile: { select: { realName: true, department: true, title: true } },
           },
         },
       },
@@ -45,7 +45,14 @@ export class ChatService {
       const otherName = isPatient
         ? conv.doctor.doctorProfile?.realName || '医生'
         : conv.patient.patientProfile?.nickname || '患者'
-      const otherTag = isPatient ? conv.doctor.doctorProfile?.department || '' : ''
+      const dp = conv.doctor.doctorProfile
+      const TITLE_LABELS: Record<string, string> = {
+        CHIEF: '主任医师',
+        ASSOCIATE_CHIEF: '副主任医师',
+        ATTENDING: '主治医师',
+        RESIDENT: '住院医师',
+      }
+      const otherTag = isPatient ? dp?.department || (dp?.title ? TITLE_LABELS[dp.title] || '') : ''
 
       const lastMsg = await this.prisma.message.findFirst({
         where: { conversationId: conv.id },

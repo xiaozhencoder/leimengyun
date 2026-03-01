@@ -25,12 +25,18 @@ export class HealthService {
     })
   }
 
-  async getBloodSugars(userId: string, days: number) {
+  async getBloodSugars(userId: string, days: number, start?: string, end?: string) {
     const patientId = await this.getPatientProfileId(userId)
-    const since = new Date()
-    since.setDate(since.getDate() - days)
+    let where: { patientId: string; recordedAt: { gte?: Date; lte?: Date } } = { patientId, recordedAt: {} }
+    if (start && end) {
+      where.recordedAt = { gte: new Date(start), lte: new Date(end) }
+    } else {
+      const since = new Date()
+      since.setDate(since.getDate() - days)
+      where.recordedAt = { gte: since }
+    }
     return this.prisma.bloodSugarRecord.findMany({
-      where: { patientId, recordedAt: { gte: since } },
+      where,
       orderBy: { recordedAt: 'desc' },
     })
   }
@@ -86,13 +92,19 @@ export class HealthService {
     })
   }
 
-  async getTodaySummary(userId: string) {
+  async getTodaySummary(userId: string, start?: string, end?: string) {
     const patientId = await this.getPatientProfileId(userId)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    let where: { patientId: string; recordedAt: { gte?: Date; lte?: Date } } = { patientId, recordedAt: {} }
+    if (start && end) {
+      where.recordedAt = { gte: new Date(start), lte: new Date(end) }
+    } else {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      where.recordedAt = { gte: today }
+    }
 
     const records = await this.prisma.bloodSugarRecord.findMany({
-      where: { patientId, recordedAt: { gte: today } },
+      where,
     })
 
     const count = records.length

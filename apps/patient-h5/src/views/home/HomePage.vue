@@ -89,7 +89,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
-import { getTodaySummary, getBloodSugars, getDiets, getMedications } from '@/api/health'
+import {
+  getTodaySummary,
+  getBloodSugars,
+  getDiets,
+  getMedications,
+  getLocalDayRange,
+  toLocalDateString,
+} from '@/api/health'
 import BloodSugarChart from '@/components/BloodSugarChart.vue'
 import {
   MEASURE_TIME_LABELS,
@@ -116,7 +123,7 @@ const todayBloodSugars = ref<BsPoint[]>([])
 
 const todayDateLabel = computed(() => {
   const d = new Date()
-  return `${d.getFullYear()}年${(d.getMonth() + 1).toString().padStart(2, '0')}月${d.getDate().toString().padStart(2, '0')}日`
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
 })
 
 const greetingText = computed(() => {
@@ -161,6 +168,38 @@ function formatTime(dateStr: string) {
   return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
 }
 
+const SEP = '・'
+
+function getDateLabel(dateStr: string): string {
+  const dateKey = toLocalDateString(dateStr)
+  const now = new Date()
+  const today =
+    now.getFullYear() +
+    '-' +
+    String(now.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(now.getDate()).padStart(2, '0')
+  const yesterday = new Date(now)
+  yesterday.setDate(yesterday.getDate() - 1)
+  const yesterdayStr =
+    yesterday.getFullYear() +
+    '-' +
+    String(yesterday.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(yesterday.getDate()).padStart(2, '0')
+  if (dateKey === today) return ''
+  if (dateKey === yesterdayStr) return '昨天' + SEP
+  const [, m, day] = dateKey.split('-').map(Number)
+  return m + '月' + day + '日' + SEP
+}
+
+function formatRecordMeta(dateStr: string, extra?: string): string {
+  const time = formatTime(dateStr)
+  const dateLabel = getDateLabel(dateStr)
+  if (extra) return dateLabel + time + SEP + extra
+  return dateLabel + time
+}
+
 function recordIcon(type: 'BS' | 'DIET' | 'MED') {
   return type === 'BS' ? '🩸' : type === 'DIET' ? '🍱' : '💊'
 }
@@ -176,9 +215,10 @@ function getBsColor(value: number) {
 
 onMounted(async () => {
   try {
+    const { start, end } = getLocalDayRange()
     const [s, bsToday, bsList, dietList, medList] = await Promise.all([
-      getTodaySummary(),
-      getBloodSugars(1),
+      getTodaySummary({ start, end }),
+      getBloodSugars(7, { start, end }),
       getBloodSugars(7),
       getDiets(7),
       getMedications(7),
@@ -199,7 +239,7 @@ onMounted(async () => {
         id: r.id,
         type: 'BS',
         title: (MEASURE_TIME_LABELS[r.measureTime] || r.measureTime) + '血糖',
-        meta: formatTime(r.recordedAt),
+        meta: formatRecordMeta(r.recordedAt),
         recordedAt: r.recordedAt,
         value: r.value,
       })
@@ -211,9 +251,9 @@ onMounted(async () => {
       if (Array.isArray(items) && items.length) {
         foodStr = items.map((f: any) => f.name || '').filter(Boolean).join(' + ')
       }
-      const sep = ' \u00B7 '
-      const title = foodStr ? meal + sep + foodStr : meal + sep + '碳水 ' + r.totalCarbs + 'g'
-      const meta = formatTime(r.recordedAt) + sep + '碳水 ' + r.totalCarbs + 'g'
+      const titleSep = ' ' + SEP + ' '
+      const title = foodStr ? meal + titleSep + foodStr : meal + titleSep + '碳水 ' + r.totalCarbs + 'g'
+      const meta = formatRecordMeta(r.recordedAt, '碳水 ' + r.totalCarbs + 'g')
       mixed.push({
         id: r.id,
         type: 'DIET',
@@ -222,15 +262,15 @@ onMounted(async () => {
         recordedAt: r.recordedAt,
       })
     }
-    const sep = ' \u00B7 '
+    const titleSep = ' ' + SEP + ' '
     for (const r of (medList as any[]) || []) {
       const meta = r.injectionSite
-        ? formatTime(r.recordedAt) + sep + (INJECTION_SITE_LABELS[r.injectionSite] || r.injectionSite)
-        : formatTime(r.recordedAt)
+        ? formatRecordMeta(r.recordedAt, INJECTION_SITE_LABELS[r.injectionSite] || r.injectionSite)
+        : formatRecordMeta(r.recordedAt)
       mixed.push({
         id: 'med-' + r.id,
         type: 'MED',
-        title: r.medName + sep + r.dosage + r.dosageUnit,
+        title: r.medName + titleSep + r.dosage + r.dosageUnit,
         meta,
         recordedAt: r.recordedAt,
       })

@@ -19,8 +19,13 @@ export class HealthController {
 
   @Get('blood-sugar')
   @ApiOperation({ summary: '获取血糖记录列表' })
-  async getBloodSugars(@Request() req, @Query('days') days?: string) {
-    return this.healthService.getBloodSugars(req.user.id, parseInt(days || '7'))
+  async getBloodSugars(
+    @Request() req,
+    @Query('days') days?: string,
+    @Query('start') start?: string,
+    @Query('end') end?: string,
+  ) {
+    return this.healthService.getBloodSugars(req.user.id, parseInt(days || '7'), start, end)
   }
 
   @Post('diet')
@@ -49,7 +54,11 @@ export class HealthController {
 
   @Get('today-summary')
   @ApiOperation({ summary: '获取今日概览' })
-  async getTodaySummary(@Request() req) {
-    return this.healthService.getTodaySummary(req.user.id)
+  async getTodaySummary(
+    @Request() req,
+    @Query('start') start?: string,
+    @Query('end') end?: string,
+  ) {
+    return this.healthService.getTodaySummary(req.user.id, start, end)
   }
 }

@@ -58,7 +58,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { getBloodSugars, getDiets, getMedications } from '@/api/health'
+import { getBloodSugars, getDiets, getMedications, toLocalDateString } from '@/api/health'
 import { MEASURE_TIME_LABELS, MEAL_TYPE_LABELS } from '@leimengyun/shared'
 import BloodSugarChart from '@/components/BloodSugarChart.vue'
 
@@ -83,7 +83,7 @@ const INJECTION_SITE_LABELS: Record<string, string> = {
 const trendChartData = computed(() => {
   const byDate: Record<string, number[]> = {}
   for (const r of rawBloodSugars.value) {
-    const d = (r.recordedAt as string).slice(0, 10)
+    const d = toLocalDateString(r.recordedAt)
     if (!byDate[d]) byDate[d] = []
     byDate[d].push(r.value)
   }
@@ -116,7 +116,7 @@ const flatRecords = computed((): RecordItem[] => {
   for (const r of rawRecords.value.bs) {
     items.push({
       id: r.id,
-      dateKey: r.recordedAt.slice(0, 10),
+      dateKey: toLocalDateString(r.recordedAt),
       title: (MEASURE_TIME_LABELS[r.measureTime] || r.measureTime) + '血糖',
       meta: formatTimeOnly(r.recordedAt),
       value: String(r.value),
@@ -134,9 +134,9 @@ const flatRecords = computed((): RecordItem[] => {
       : ''
     items.push({
       id: r.id,
-      dateKey: r.recordedAt.slice(0, 10),
-      title: foodStr ? meal + ' \u00B7 ' + foodStr : meal + ' \u00B7 碳水 ' + r.totalCarbs + 'g',
-      meta: formatTimeOnly(r.recordedAt) + ' \u00B7 碳水 ' + r.totalCarbs + 'g',
+      dateKey: toLocalDateString(r.recordedAt),
+      title: foodStr ? meal + '・' + foodStr : meal + '・碳水 ' + r.totalCarbs + 'g',
+      meta: formatTimeOnly(r.recordedAt) + '・碳水 ' + r.totalCarbs + 'g',
       icon: '\u{1F371}',
       iconClass: 'record-icon-diet',
       recordedAt: r.recordedAt,
@@ -145,12 +145,12 @@ const flatRecords = computed((): RecordItem[] => {
   }
   for (const r of rawRecords.value.med) {
     const meta = r.injectionSite
-      ? formatTimeOnly(r.recordedAt) + ' \u00B7 ' + (INJECTION_SITE_LABELS[r.injectionSite] || r.injectionSite)
+      ? formatTimeOnly(r.recordedAt) + '・' + (INJECTION_SITE_LABELS[r.injectionSite] || r.injectionSite)
       : formatTimeOnly(r.recordedAt)
     items.push({
       id: 'med-' + r.id,
-      dateKey: r.recordedAt.slice(0, 10),
-      title: r.medName + ' \u00B7 ' + r.dosage + r.dosageUnit,
+      dateKey: toLocalDateString(r.recordedAt),
+      title: r.medName + '・' + r.dosage + r.dosageUnit,
       meta,
       icon: '\u{1F48A}',
       iconClass: 'record-icon-med',
@@ -168,25 +168,46 @@ const filteredRecords = computed(() => {
   return flatRecords.value.filter((r) => r.type === type)
 })
 
+function getLocalToday(): string {
+  const now = new Date()
+  return (
+    now.getFullYear() +
+    '-' +
+    String(now.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(now.getDate()).padStart(2, '0')
+  )
+}
+
+function getLocalYesterday(): string {
+  const y = new Date()
+  y.setDate(y.getDate() - 1)
+  return (
+    y.getFullYear() +
+    '-' +
+    String(y.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(y.getDate()).padStart(2, '0')
+  )
+}
+
 const displayGroups = computed(() => {
   const groups: Record<string, { date: string; dateLabel: string; items: RecordItem[] }> = {}
+  const today = getLocalToday()
+  const yesterdayStr = getLocalYesterday()
   for (const r of filteredRecords.value) {
     const date = r.dateKey
     if (!groups[date]) {
-      const d = new Date(date)
-      const now = new Date()
-      const today = now.toISOString().slice(0, 10)
-      const yesterday = new Date(now)
-      yesterday.setDate(yesterday.getDate() - 1)
-      const yesterdayStr = yesterday.toISOString().slice(0, 10)
+      const [y, m, d] = date.split('-').map(Number)
+      const dObj = new Date(y, m - 1, d)
       let dateLabel = ''
       if (date === today) {
-        dateLabel = '今天 \u00B7 ' + (d.getMonth() + 1) + '月' + d.getDate() + '日'
+        dateLabel = '今天・' + m + '月' + d + '日'
       } else if (date === yesterdayStr) {
-        dateLabel = '昨天 \u00B7 ' + (d.getMonth() + 1) + '月' + d.getDate() + '日'
+        dateLabel = '昨天・' + m + '月' + d + '日'
       } else {
         const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
-        dateLabel = (d.getMonth() + 1) + '月' + d.getDate() + '日 \u00B7 ' + weekdays[d.getDay()]
+        dateLabel = m + '月' + d + '日・' + weekdays[dObj.getDay()]
       }
       groups[date] = { date, dateLabel, items: [] }
     }
