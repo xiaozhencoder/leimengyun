@@ -24,14 +24,7 @@
               <img :src="msg.content" class="msg-img" alt="图片" @click="previewImage(msg.content)" />
             </div>
             <div class="msg-bubble" v-else-if="msg.contentType === 'BLOOD_SUGAR_CARD'">
-              <div class="bs-card" v-if="parseBsCard(msg.content)">
-                <span class="bs-card-label">血糖分享</span>
-                <span class="bs-card-value" :style="{ color: getBsColor(parseBsCard(msg.content)!.value) }">
-                  {{ parseBsCard(msg.content)!.value }} mmol/L
-                </span>
-                <span class="bs-card-time">{{ parseBsCard(msg.content)!.time }}</span>
-              </div>
-              <span v-else>{{ msg.content }}</span>
+              {{ formatBsCardAsText(msg.content) }}
             </div>
             <div class="msg-bubble" v-else>{{ msg.content }}</div>
             <div class="msg-meta">
@@ -110,6 +103,10 @@ function getBsColor(v: number) {
   return '#FF4D4F'
 }
 
+function formatBsCardAsText(content: string): string {
+  const parsed = parseBsCard(content)
+  return parsed ? `${parsed.value} mmol/L ${parsed.time}` : String(content)
+}
 function parseBsCard(content: string): { value: number; time: string } | null {
   try {
     const o = JSON.parse(content)
@@ -269,8 +266,4 @@ onDeactivated(() => chatStore.refreshUnreadCount())
 .chat-input-bar { border-top: 1px solid #ebedf0; background: #fff; }
 .input-icon { padding: 0 4px; color: #646566; }
 .msg-img { max-width: 200px; max-height: 200px; border-radius: 8px; display: block; cursor: pointer; }
-.bs-card { display: flex; flex-direction: column; gap: 4px; }
-.bs-card-label { font-size: 12px; color: #969799; }
-.bs-card-value { font-size: 18px; font-weight: 700; }
-.bs-card-time { font-size: 11px; color: #c8c9cc; }
 </style>

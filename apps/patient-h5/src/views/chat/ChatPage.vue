@@ -11,14 +11,7 @@
               <img :src="msg.content" class="msg-img" alt="图片" @click="previewImage(msg.content)" />
             </div>
             <div class="msg-bubble" v-else-if="msg.contentType === 'BLOOD_SUGAR_CARD'">
-              <div class="bs-card" v-if="parseBsCard(msg.content)">
-                <span class="bs-card-label">血糖分享</span>
-                <span class="bs-card-value" :style="{ color: getBsColor(parseBsCard(msg.content)!.value) }">
-                  {{ parseBsCard(msg.content)!.value }} mmol/L
-                </span>
-                <span class="bs-card-time">{{ parseBsCard(msg.content)!.time }}</span>
-              </div>
-              <span v-else>{{ msg.content }}</span>
+              {{ formatBsCardAsText(msg.content) }}
             </div>
             <div class="msg-bubble" v-else>{{ msg.content }}</div>
             <div class="msg-meta">
@@ -38,13 +31,6 @@
       >
         <template #left-icon>
           <div class="input-actions">
-            <van-icon
-              name="chart-trending-o"
-              size="22"
-              class="input-icon"
-              title="分享血糖"
-              @click="shareRecentBloodSugar"
-            />
             <van-uploader
             :after-read="onImageSelect"
             accept="image/*"
@@ -78,7 +64,6 @@ import { showFailToast, showImagePreview } from 'vant'
 import { useUserStore } from '@/stores/user'
 import { useChatStore } from '@/stores/chat'
 import { getMessages, sendMessage, markRead, getConversations } from '@/api/chat'
-import { getBloodSugars } from '@/api/health'
 import { useNewMessage } from '@/api/socket'
 
 const route = useRoute()
@@ -110,13 +95,10 @@ function formatTimeDivider(dateStr: string) {
   return `${d.getMonth() + 1}月${d.getDate()}日 ${formatMsgTime(dateStr)}`
 }
 
-function getBsColor(v: number) {
-  if (v < 3.9) return '#3B82F6'
-  if (v <= 7.8) return '#1AAD6E'
-  if (v <= 11.1) return '#FFB020'
-  return '#FF4D4F'
+function formatBsCardAsText(content: string): string {
+  const parsed = parseBsCard(content)
+  return parsed ? `${parsed.value} mmol/L ${parsed.time}` : String(content)
 }
-
 function parseBsCard(content: string): { value: number; time: string } | null {
   try {
     const o = JSON.parse(content)
@@ -154,39 +136,6 @@ async function onImageSelect(file: any) {
     const idx = messages.value.findIndex((m) => m.id === tempId)
     if (idx >= 0) messages.value.splice(idx, 1)
     showFailToast(err.response?.data?.message || '发送失败')
-  }
-}
-
-async function shareRecentBloodSugar() {
-  try {
-    const list = (await getBloodSugars(1)) as any[]
-    const latest = list?.length ? list[list.length - 1] : null
-    if (!latest) {
-      showFailToast('暂无血糖记录')
-      return
-    }
-    const content = JSON.stringify({
-      value: latest.value,
-      measureTime: latest.measureTime,
-      time: new Date(latest.recordedAt).toLocaleString('zh-CN'),
-    })
-    const tempId = `temp-bs-${Date.now()}`
-    const tempMsg = {
-      id: tempId,
-      senderId: myUserId.value,
-      contentType: 'BLOOD_SUGAR_CARD',
-      content,
-      isRead: false,
-      createdAt: new Date().toISOString(),
-      _pending: true,
-    }
-    messages.value.push(tempMsg)
-    await scrollToBottom()
-    const realMsg = await sendMessage(conversationId, content, 'BLOOD_SUGAR_CARD')
-    const idx = messages.value.findIndex((m) => m.id === tempId)
-    if (idx >= 0) messages.value[idx] = { ...realMsg, _pending: false }
-  } catch (err: any) {
-    showFailToast(err.response?.data?.message || '分享失败')
   }
 }
 
@@ -391,12 +340,4 @@ onDeactivated(() => {
   display: block;
   cursor: pointer;
 }
-.bs-card {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.bs-card-label { font-size: 12px; color: #969799; }
-.bs-card-value { font-size: 18px; font-weight: 700; }
-.bs-card-time { font-size: 11px; color: #c8c9cc; }
 </style>

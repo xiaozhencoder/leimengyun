@@ -1,18 +1,14 @@
 <template>
   <div class="home-page">
-    <div class="home-header">
-      <div class="greeting">
-        <p class="greeting-text">{{ greetingText }}，{{ userStore.nickname }}</p>
-        <p class="greeting-meta" v-if="userStore.profile">
-          {{ diabetesLabel }} · {{ treatmentLabel }}
-        </p>
-      </div>
-      <van-icon
-        name="add-o"
-        size="24"
-        class="bind-doctor-btn"
-        @click="$router.push('/bind-doctor')"
-      />
+    <div class="home-header-bar">
+      <span class="header-title">雷檬云</span>
+      <van-icon name="add-o" size="24" class="header-add" @click="$router.push('/bind-doctor')" />
+    </div>
+    <div class="home-greeting">
+      <p class="greeting-text">{{ greetingText }}，{{ userStore.nickname }}</p>
+      <p class="greeting-meta" v-if="userStore.profile">
+        {{ greetingMetaText }}
+      </p>
     </div>
 
     <div class="quick-actions">
@@ -30,7 +26,11 @@
       </div>
     </div>
 
-    <van-cell-group inset :title="`今日概览 · ${todayDateLabel}`" style="margin-top: 12px">
+    <div class="card overview-card">
+      <div class="card-title-row">
+        <span>今日概览</span>
+        <span class="card-date">{{ todayDateLabel }}</span>
+      </div>
       <div class="stats-grid">
         <div class="stat-item">
           <span class="stat-value" :style="{ color: summary.average > 0 ? '#1AAD6E' : '#969799' }">
@@ -49,7 +49,7 @@
           <span class="stat-label">达标率</span>
         </div>
       </div>
-    </van-cell-group>
+    </div>
 
     <div class="card-header" style="margin-top: 12px">
       <span>今日血糖曲线</span>
@@ -59,7 +59,11 @@
       <BloodSugarChart :data="todayBloodSugars" mode="today" show-normal-range height="200px" />
     </van-cell-group>
 
-    <van-cell-group inset title="最近记录" style="margin-top: 12px">
+    <div class="card records-card">
+      <div class="card-title-row">
+        <span>最近记录</span>
+        <span class="card-more link" @click="$router.push('/records')">更多 ›</span>
+      </div>
       <template v-if="recentMixedRecords.length">
         <div
           v-for="item in recentMixedRecords"
@@ -67,19 +71,18 @@
           class="record-item"
           @click="$router.push('/records')"
         >
-          <div class="record-icon" :class="recordIconClass(item.type)"> {{ recordIcon(item.type) }}</div>
+          <div class="record-icon" :class="recordIconClass(item.type)">{{ recordIcon(item.type) }}</div>
           <div class="record-content">
             <div class="record-title">{{ item.title }}</div>
-            <div class="record-meta">{{ formatTime(item.recordedAt) }}</div>
+            <div class="record-meta">{{ item.meta }}</div>
           </div>
           <div v-if="item.type === 'BS' && item.value != null" class="record-value" :style="{ color: getBsColor(item.value!) }">
             {{ item.value }}
           </div>
         </div>
-        <van-cell title="查看更多" is-link @click="$router.push('/records')" />
       </template>
       <van-empty v-else description="暂无记录，点击上方按钮开始记录" image="search" />
-    </van-cell-group>
+    </div>
   </div>
 </template>
 
