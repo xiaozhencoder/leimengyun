@@ -12,17 +12,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useChatStore } from '@/stores/chat'
 import { useNewMessage, useConversationUpdate } from '@/api/socket'
 
-const active = ref(0)
+const route = useRoute()
 const chatStore = useChatStore()
+const active = ref(0)
 
-onMounted(() => {
-  chatStore.refreshUnreadCount()
-})
+const TAB_MAP: Record<string, number> = { Patients: 0, Messages: 1, Profile: 2 }
+watch(() => route.name, (name) => { active.value = TAB_MAP[name as string] ?? 0 }, { immediate: true })
 
+onMounted(() => { chatStore.refreshUnreadCount() })
 useNewMessage(() => chatStore.refreshUnreadCount())
 useConversationUpdate(() => chatStore.refreshUnreadCount())
 </script>

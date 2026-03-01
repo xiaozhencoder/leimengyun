@@ -3,29 +3,24 @@
     <van-nav-bar title="消息" />
     <van-pull-refresh v-model="refreshing" @refresh="loadConversations">
       <van-cell-group v-if="conversations.length">
-        <van-cell
+        <div
           v-for="conv in conversations"
           :key="conv.id"
-          :title="conv.otherName"
-          :label="conv.lastMessage || '暂无消息'"
-          is-link
+          class="msg-item"
           @click="$router.push('/chat/' + conv.id)"
         >
-          <template #icon>
-            <van-badge
-              v-if="conv.unreadCount"
-              :content="conv.unreadCount"
-              :max="99"
-              class="msg-avatar-badge"
-            >
+          <div class="msg-avatar-wrap">
+            <van-badge v-if="conv.unreadCount" :content="conv.unreadCount" :max="99" :offset="[2, 2]">
               <div class="msg-avatar">{{ conv.otherName?.[0] || '?' }}</div>
             </van-badge>
             <div v-else class="msg-avatar">{{ conv.otherName?.[0] || '?' }}</div>
-          </template>
-          <template #value>
-            <span class="msg-time">{{ formatTime(conv.lastMessageAt) }}</span>
-          </template>
-        </van-cell>
+          </div>
+          <div class="msg-body">
+            <div class="msg-name">{{ conv.otherName }}</div>
+            <div class="msg-preview">{{ conv.lastMessage || '暂无消息' }}</div>
+          </div>
+          <span class="msg-time">{{ formatTime(conv.lastMessageAt) }}</span>
+        </div>
       </van-cell-group>
       <van-empty v-else description="暂无消息，绑定医生后即可开始对话" image="search">
         <van-button type="primary" size="small" @click="$router.push('/bind-doctor')">
@@ -86,6 +81,19 @@ onActivated(loadConversations)
 </script>
 
 <style scoped>
+.msg-item {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  background: #fff;
+  border-bottom: 1px solid #ebedf0;
+  cursor: pointer;
+}
+.msg-avatar-wrap {
+  position: relative;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
 .msg-avatar {
   width: 40px;
   height: 40px;
@@ -97,17 +105,12 @@ onActivated(loadConversations)
   justify-content: center;
   font-weight: 600;
   font-size: 16px;
-  margin-right: 12px;
 }
-.msg-avatar-badge {
-  margin-right: 12px;
-}
-.msg-avatar-badge :deep(.van-badge__wrapper) {
+.msg-avatar-wrap :deep(.van-badge__wrapper) {
   display: block;
 }
-.msg-time {
-  font-size: 11px;
-  color: #c8c9cc;
-  flex-shrink: 0;
-}
+.msg-body { flex: 1; min-width: 0; }
+.msg-name { font-size: 15px; font-weight: 500; color: #323233; }
+.msg-preview { font-size: 13px; color: #969799; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msg-time { font-size: 11px; color: #c8c9cc; flex-shrink: 0; margin-left: 8px; align-self: flex-start; margin-top: 2px; }
 </style>

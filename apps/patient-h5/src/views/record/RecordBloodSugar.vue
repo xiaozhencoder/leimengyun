@@ -7,13 +7,24 @@
         v-model="valueStr"
         type="number"
         step="0.1"
-        class="bs-value-input"
+        :class="['bs-value-input', 'bs-value-input--' + levelClass]"
         inputmode="decimal"
+        placeholder="0.0"
       />
-      <van-tag :type="levelType" size="medium">{{ levelText }}</van-tag>
+      <span :class="['bs-level-label', 'bs-level-label--' + levelClass]">{{ levelText }}</span>
     </div>
     <van-cell-group inset>
-      <van-cell title="测量时段" :value="selectedTimeLabel" is-link @click="showTimePicker = true" />
+      <div class="chip-field">
+        <span class="chip-label">测量时段</span>
+        <div class="chip-row">
+          <span
+            v-for="([val, name]) in timeOptions"
+            :key="val"
+            :class="['chip', { 'chip--active': selectedTime === val }]"
+            @click="selectedTime = val"
+          >{{ name }}</span>
+        </div>
+      </div>
       <van-cell title="记录时间" :value="displayTime" is-link @click="showDatePicker = true" />
     </van-cell-group>
     <van-cell-group inset style="margin-top: 12px">
@@ -23,7 +34,6 @@
       <van-button round block type="primary" :loading="saving" @click="onSave">保存记录</van-button>
     </div>
 
-    <van-action-sheet v-model:show="showTimePicker" title="选择测量时段" :actions="timeActions" @select="onTimeSelect" />
     <van-popup v-model:show="showDatePicker" position="bottom">
       <van-date-picker
         v-model="dateValues"
@@ -47,7 +57,6 @@ const valueStr = ref('6.5')
 const selectedTime = ref('BEFORE_LUNCH')
 const note = ref('')
 const saving = ref(false)
-const showTimePicker = ref(false)
 const showDatePicker = ref(false)
 
 const now = new Date()
@@ -63,30 +72,27 @@ const displayTime = computed(() => {
   return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
 })
 
-const selectedTimeLabel = computed(() => MEASURE_TIME_LABELS[selectedTime.value] || selectedTime.value)
+const timeOptions = Object.entries(MEASURE_TIME_LABELS)
 
 const value = computed(() => parseFloat(valueStr.value) || 0)
 
-const levelType = computed(() => {
-  if (value.value < 3.9) return 'primary'
-  if (value.value <= 6.1) return 'success'
-  if (value.value <= 7.8) return 'warning'
-  return 'danger'
+const levelClass = computed(() => {
+  const v = value.value
+  if (v < 1) return 'unknown'
+  if (v < 3.9) return 'low'
+  if (v <= 6.1) return 'normal'
+  if (v <= 7.8) return 'high'
+  return 'veryhigh'
 })
 
 const levelText = computed(() => {
-  if (value.value < 3.9) return '偏低'
-  if (value.value <= 6.1) return '正常'
-  if (value.value <= 7.8) return '偏高'
+  const v = value.value
+  if (v < 1) return '—'
+  if (v < 3.9) return '偏低'
+  if (v <= 6.1) return '正常'
+  if (v <= 7.8) return '偏高'
   return '高'
 })
-
-const timeActions = Object.entries(MEASURE_TIME_LABELS).map(([value, name]) => ({ name, value }))
-
-function onTimeSelect(action: any) {
-  selectedTime.value = action.value
-  showTimePicker.value = false
-}
 
 function onDateConfirm({ selectedValues }: { selectedValues: string[] }) {
   const d = new Date(`${selectedValues[0]}-${selectedValues[1]}-${selectedValues[2]}T${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}:00`)
@@ -129,13 +135,44 @@ async function onSave() {
 .bs-value-input {
   display: block;
   margin: 8px auto;
-  font-size: 48px;
+  font-size: 56px;
   font-weight: 700;
-  color: #1aad6e;
   text-align: center;
   border: none;
   outline: none;
   background: transparent;
-  width: 200px;
+  width: 220px;
+  transition: color 0.2s;
 }
+.bs-value-input--unknown { color: #c8c9cc; }
+.bs-value-input--low { color: #1989fa; }
+.bs-value-input--normal { color: #07c160; }
+.bs-value-input--high { color: #ee0a24; }
+.bs-value-input--veryhigh { color: #c41411; }
+.bs-level-label {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 14px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.bs-level-label--unknown { background: #f2f3f5; color: #969799; }
+.bs-level-label--low { background: #e6f7ff; color: #1989fa; }
+.bs-level-label--normal { background: #e8f8f0; color: #07c160; }
+.bs-level-label--high { background: #fff1f0; color: #ee0a24; }
+.bs-level-label--veryhigh { background: #fff1f0; color: #c41411; }
+.chip-field { padding: 14px 16px; }
+.chip-label { font-size: 14px; color: #646566; display: block; margin-bottom: 10px; }
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  padding: 6px 14px;
+  border-radius: 16px;
+  font-size: 13px;
+  background: #f7f8fa;
+  color: #646566;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.chip--active { background: #1aad6e; color: #fff; }
 </style>

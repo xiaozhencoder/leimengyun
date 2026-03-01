@@ -30,11 +30,7 @@
       </div>
     </div>
 
-    <van-cell-group inset title="今日血糖曲线" style="margin-top: 12px">
-      <BloodSugarChart :data="todayBloodSugars" mode="today" show-normal-range height="200px" />
-    </van-cell-group>
-
-    <van-cell-group inset title="今日概览" style="margin-top: 12px">
+    <van-cell-group inset :title="`今日概览 · ${todayDateLabel}`" style="margin-top: 12px">
       <div class="stats-grid">
         <div class="stat-item">
           <span class="stat-value" :style="{ color: summary.average > 0 ? '#1AAD6E' : '#969799' }">
@@ -55,25 +51,31 @@
       </div>
     </van-cell-group>
 
+    <div class="card-header" style="margin-top: 12px">
+      <span>今日血糖曲线</span>
+      <span class="card-more link" @click="$router.push('/records')">查看全部 ›</span>
+    </div>
+    <van-cell-group inset style="margin-top: 0">
+      <BloodSugarChart :data="todayBloodSugars" mode="today" show-normal-range height="200px" />
+    </van-cell-group>
+
     <van-cell-group inset title="最近记录" style="margin-top: 12px">
       <template v-if="recentMixedRecords.length">
-        <van-cell
+        <div
           v-for="item in recentMixedRecords"
           :key="item.id"
-          :title="item.title"
-          :label="formatTime(item.recordedAt)"
-          is-link
+          class="record-item"
           @click="$router.push('/records')"
         >
-            <template #value>
-            <span
-              v-if="item.type === 'BS' && item.value != null"
-              :style="{ color: getBsColor(item.value!), fontWeight: 700, fontSize: '16px' }"
-            >
-              {{ item.value }}
-            </span>
-          </template>
-        </van-cell>
+          <div class="record-icon" :class="recordIconClass(item.type)"> {{ recordIcon(item.type) }}</div>
+          <div class="record-content">
+            <div class="record-title">{{ item.title }}</div>
+            <div class="record-meta">{{ formatTime(item.recordedAt) }}</div>
+          </div>
+          <div v-if="item.type === 'BS' && item.value != null" class="record-value" :style="{ color: getBsColor(item.value!) }">
+            {{ item.value }}
+          </div>
+        </div>
         <van-cell title="查看更多" is-link @click="$router.push('/records')" />
       </template>
       <van-empty v-else description="暂无记录，点击上方按钮开始记录" image="search" />
@@ -105,6 +107,11 @@ const recentMixedRecords = ref<Array<{
 }>>([])
 const todayBloodSugars = ref<{ recordedAt: string; value: number }[]>([])
 
+const todayDateLabel = computed(() => {
+  const d = new Date()
+  return `${d.getFullYear()}年${(d.getMonth() + 1).toString().padStart(2, '0')}月${d.getDate().toString().padStart(2, '0')}日`
+})
+
 const greetingText = computed(() => {
   const h = new Date().getHours()
   if (h < 6) return '凌晨好'
@@ -130,6 +137,12 @@ function formatTime(dateStr: string) {
   return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
 }
 
+function recordIcon(type: 'BS' | 'DIET' | 'MED') {
+  return type === 'BS' ? '🩸' : type === 'DIET' ? '🍱' : '💊'
+}
+function recordIconClass(type: 'BS' | 'DIET' | 'MED') {
+  return type === 'BS' ? 'record-icon-bs' : type === 'DIET' ? 'record-icon-diet' : 'record-icon-med'
+}
 function getBsColor(value: number) {
   if (value < 3.9) return '#3B82F6'
   if (value <= 7.8) return '#1AAD6E'
@@ -251,4 +264,49 @@ onMounted(async () => {
   margin-top: 2px;
   display: block;
 }
+.card-more {
+  font-size: 12px;
+  color: #969799;
+}
+.card-more.link {
+  color: #1aad6e;
+  cursor: pointer;
+}
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #323233;
+}
+.record-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 12px 16px;
+  border-bottom: 1px solid #ebedf0;
+  cursor: pointer;
+}
+.record-item:last-of-type {
+  border-bottom: none;
+}
+.record-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+.record-icon-bs { background: #FFF0F0; }
+.record-icon-diet { background: #FFF8E6; }
+.record-icon-med { background: #E8F8F0; }
+.record-content { flex: 1; min-width: 0; }
+.record-title { font-size: 14px; font-weight: 500; color: #323233; }
+.record-meta { font-size: 12px; color: #969799; margin-top: 2px; }
+.record-value { font-size: 18px; font-weight: 700; flex-shrink: 0; margin-left: 8px; }
 </style>

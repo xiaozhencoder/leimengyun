@@ -2,7 +2,17 @@
   <div class="record-page">
     <van-nav-bar title="记录饮食" left-arrow @click-left="$router.back()" />
     <van-cell-group inset style="margin-top: 12px">
-      <van-cell title="餐次" :value="mealLabel" is-link @click="showMealPicker = true" />
+      <div class="chip-field">
+        <span class="chip-label">餐次</span>
+        <div class="chip-row">
+          <span
+            v-for="opt in mealOptions"
+            :key="opt.value"
+            :class="['chip', { 'chip--active': mealType === opt.value }]"
+            @click="mealType = opt.value"
+          >{{ opt.name }}</span>
+        </div>
+      </div>
     </van-cell-group>
 
     <van-cell-group inset title="食物明细" style="margin-top: 12px">
@@ -41,7 +51,6 @@
       <van-button round block type="primary" :loading="saving" @click="onSave">保存记录</van-button>
     </div>
 
-    <van-action-sheet v-model:show="showMealPicker" :actions="mealActions" @select="onMealSelect" />
   </div>
 </template>
 
@@ -55,24 +64,20 @@ const router = useRouter()
 const saving = ref(false)
 const mealType = ref('LUNCH')
 const note = ref('')
-const showMealPicker = ref(false)
 const photoFileList = ref<Array<{ content?: string }>>([])
 
 const foodItems = ref([
   { name: '', quantity: '', carbs: 0 },
 ])
 
-const mealActions = [
+const mealOptions = [
   { name: '早餐', value: 'BREAKFAST' },
   { name: '午餐', value: 'LUNCH' },
   { name: '晚餐', value: 'DINNER' },
   { name: '加餐', value: 'SNACK' },
 ]
-
-const mealLabel = computed(() => mealActions.find((a) => a.value === mealType.value)?.name || '请选择')
 const totalCarbs = computed(() => foodItems.value.reduce((s, f) => s + (Number(f.carbs) || 0), 0))
 
-function onMealSelect(action: any) { mealType.value = action.value; showMealPicker.value = false }
 function addFood() { foodItems.value.push({ name: '', quantity: '', carbs: 0 }) }
 
 async function onSave() {
@@ -116,4 +121,17 @@ async function onSave() {
   color: #646566;
 }
 .carbs-value { font-size: 20px; font-weight: 700; color: #1aad6e; }
+.chip-field { padding: 14px 16px; }
+.chip-label { font-size: 14px; color: #646566; display: block; margin-bottom: 10px; }
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  padding: 6px 14px;
+  border-radius: 16px;
+  font-size: 13px;
+  background: #f7f8fa;
+  color: #646566;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.chip--active { background: #1aad6e; color: #fff; }
 </style>

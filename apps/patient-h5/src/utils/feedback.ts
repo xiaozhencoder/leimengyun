@@ -1,27 +1,29 @@
-import { showNotify } from 'vant'
+import { showToast, showNotify } from 'vant'
 
 /**
- * 记录页等场景使用 Notify 展示错误，顶部全宽通知条，比 Toast 更醒目
+ * 记录页等场景使用 Toast 展示错误，居中大字号，更易辨认
  */
 export function showError(message: string) {
-  showNotify({
-    type: 'danger',
+  showToast({
     message,
-    duration: 4000,
-    background: '#EE0A24',
-    color: '#fff',
+    type: 'fail',
+    duration: 3000,
+    overlay: true,
+    overlayClass: 'feedback-overlay',
+    className: 'feedback-toast feedback-toast--fail',
   })
 }
 
 /**
- * 记录页等场景使用 Notify 展示成功，顶部全宽通知条，比 Toast 更醒目
+ * 记录页等场景使用 Toast 展示成功，居中大字号带勾选图标
  */
 export function showSuccess(message: string) {
-  showNotify({
-    type: 'success',
+  showToast({
     message,
-    duration: 2500,
-    background: '#1AAD6E',
-    color: '#fff',
+    type: 'success',
+    duration: 2000,
+    overlay: true,
+    overlayClass: 'feedback-overlay',
+    className: 'feedback-toast feedback-toast--success',
   })
 }

@@ -31,3 +31,20 @@ body {
   --van-toast-background: rgba(50, 50, 51, 0.9) !important;
   --van-toast-icon-size: 40px !important;
 }
+
+/* 记录页成功/失败反馈 - 居中大字，半透明遮罩，更易辨认 */
+.feedback-overlay {
+  background: rgba(0, 0, 0, 0.4) !important;
+}
+.feedback-toast {
+  --van-toast-font-size: 16px !important;
+  --van-toast-text-min-width: 160px !important;
+  --van-toast-default-padding: 16px 24px !important;
+  --van-toast-icon-size: 48px !important;
+}
+.feedback-toast--success {
+  --van-toast-background: rgba(26, 173, 110, 0.95) !important;
+}
+.feedback-toast--fail {
+  --van-toast-background: rgba(238, 10, 36, 0.95) !important;
+}
