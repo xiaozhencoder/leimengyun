@@ -12,13 +12,18 @@
           @click="$router.push('/chat/' + conv.id)"
         >
           <template #icon>
-            <div class="msg-avatar">{{ conv.otherName?.[0] || '?' }}</div>
+            <van-badge
+              v-if="conv.unreadCount"
+              :content="conv.unreadCount"
+              :max="99"
+              class="msg-avatar-badge"
+            >
+              <div class="msg-avatar">{{ conv.otherName?.[0] || '?' }}</div>
+            </van-badge>
+            <div v-else class="msg-avatar">{{ conv.otherName?.[0] || '?' }}</div>
           </template>
           <template #value>
-            <div class="msg-right">
-              <span class="msg-time">{{ formatTime(conv.lastMessageAt) }}</span>
-              <van-badge v-if="conv.unreadCount" :content="conv.unreadCount" />
-            </div>
+            <span class="msg-time">{{ formatTime(conv.lastMessageAt) }}</span>
           </template>
         </van-cell>
       </van-cell-group>
@@ -34,9 +39,11 @@
 <script setup lang="ts">
 import { ref, onMounted, onActivated } from 'vue'
 import { getConversations } from '@/api/chat'
+import { useChatStore } from '@/stores/chat'
 import { useConversationUpdate, useNewMessage } from '@/api/socket'
 
 const conversations = ref<any[]>([])
+const chatStore = useChatStore()
 const refreshing = ref(false)
 
 function formatTime(dateStr: string) {
@@ -55,9 +62,12 @@ function formatTime(dateStr: string) {
 async function loadConversations() {
   refreshing.value = true
   try {
-    conversations.value = (await getConversations()) as any[]
+    const list = (await getConversations()) as any[]
+    conversations.value = list
+    chatStore.setTotalFromConversations(list)
   } catch {
     conversations.value = []
+    chatStore.setTotalFromConversations([])
   } finally {
     refreshing.value = false
   }
@@ -89,14 +99,15 @@ onActivated(loadConversations)
   font-size: 16px;
   margin-right: 12px;
 }
-.msg-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
+.msg-avatar-badge {
+  margin-right: 12px;
+}
+.msg-avatar-badge :deep(.van-badge__wrapper) {
+  display: block;
 }
 .msg-time {
   font-size: 11px;
   color: #c8c9cc;
+  flex-shrink: 0;
 }
 </style>

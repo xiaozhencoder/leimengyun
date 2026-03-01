@@ -28,15 +28,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onActivated, nextTick } from 'vue'
+import { ref, onMounted, onActivated, onDeactivated, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { showFailToast } from 'vant'
 import { useUserStore } from '@/stores/user'
+import { useChatStore } from '@/stores/chat'
 import { getMessages, sendMessage, markRead, getConversations } from '@/api/chat'
 import { useNewMessage } from '@/api/socket'
 
 const route = useRoute()
 const userStore = useUserStore()
+const chatStore = useChatStore()
 const conversationId = route.params.id as string
 const myUserId = ref('')
 const chatTitle = ref('对话')
@@ -130,6 +132,7 @@ onMounted(async () => {
   await loadMessages()
 })
 onActivated(() => loadMessages())
+onDeactivated(() => chatStore.refreshUnreadCount())
 </script>
 
 <style scoped>

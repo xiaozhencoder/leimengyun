@@ -22,3 +22,12 @@ body {
 :root:root {
   --van-primary-color: #1AAD6E;
 }
+
+/* 失败 Toast 可见度优化 */
+.toast-fail-enhanced {
+  --van-toast-font-size: 15px !important;
+  --van-toast-text-min-width: 140px !important;
+  --van-toast-default-padding: 14px 20px !important;
+  --van-toast-background: rgba(50, 50, 51, 0.9) !important;
+  --van-toast-icon-size: 40px !important;
+}

@@ -37,7 +37,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { showSuccessToast, showFailToast } from 'vant'
+import { showError, showSuccess } from '@/utils/feedback'
 import { createDiet } from '@/api/health'
 
 const router = useRouter()
@@ -65,7 +65,7 @@ function addFood() { foodItems.value.push({ name: '', quantity: '', carbs: 0 }) 
 
 async function onSave() {
   const items = foodItems.value.filter((f) => f.name.trim())
-  if (!items.length) { showFailToast('请至少添加一项食物'); return }
+  if (!items.length) { showError('请至少添加一项食物'); return }
   saving.value = true
   try {
     await createDiet({
@@ -75,10 +75,10 @@ async function onSave() {
       recordedAt: new Date().toISOString(),
       note: note.value || undefined,
     })
-    showSuccessToast('记录成功')
+    showSuccess('记录成功')
     setTimeout(() => router.back(), 500)
   } catch (err: any) {
-    showFailToast(err.response?.data?.message || '保存失败')
+    showError(err.response?.data?.message || '保存失败')
   } finally {
     saving.value = false
   }

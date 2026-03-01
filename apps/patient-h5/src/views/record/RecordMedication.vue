@@ -33,7 +33,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { showSuccessToast, showFailToast } from 'vant'
+import { showError, showSuccess } from '@/utils/feedback'
 import { createMedication } from '@/api/health'
 
 const router = useRouter()
@@ -68,8 +68,8 @@ function onNameSelect(a: any) { medName.value = a.name; showNamePicker.value = f
 function onSiteSelect(a: any) { site.value = a.value; showSitePicker.value = false }
 
 async function onSave() {
-  if (!medName.value) { showFailToast('请选择药物名称'); return }
-  if (!dosage.value || dosage.value <= 0) { showFailToast('请输入剂量'); return }
+  if (!medName.value) { showError('请选择药物名称'); return }
+  if (!dosage.value || dosage.value <= 0) { showError('请输入剂量'); return }
   saving.value = true
   try {
     await createMedication({
@@ -81,10 +81,10 @@ async function onSave() {
       recordedAt: new Date().toISOString(),
       note: note.value || undefined,
     })
-    showSuccessToast('记录成功')
+    showSuccess('记录成功')
     setTimeout(() => router.back(), 500)
   } catch (err: any) {
-    showFailToast(err.response?.data?.message || '保存失败')
+    showError(err.response?.data?.message || '保存失败')
   } finally {
     saving.value = false
   }

@@ -4,17 +4,27 @@
       <router-view />
     </div>
     <van-tabbar v-model="active" route :placeholder="true">
-      <van-tabbar-item to="/" icon="friends-o">患者</van-tabbar-item>
-      <van-tabbar-item to="/messages" icon="chat-o" :badge="unreadCount || ''">消息</van-tabbar-item>
-      <van-tabbar-item to="/profile" icon="user-o">我的</van-tabbar-item>
+      <van-tabbar-item :to="{ name: 'Patients' }" icon="friends-o">患者</van-tabbar-item>
+      <van-tabbar-item :to="{ name: 'Messages' }" icon="chat-o" :badge="chatStore.totalUnreadCount || ''">消息</van-tabbar-item>
+      <van-tabbar-item :to="{ name: 'Profile' }" icon="user-o">我的</van-tabbar-item>
     </van-tabbar>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useChatStore } from '@/stores/chat'
+import { useNewMessage, useConversationUpdate } from '@/api/socket'
+
 const active = ref(0)
-const unreadCount = ref(2)
+const chatStore = useChatStore()
+
+onMounted(() => {
+  chatStore.refreshUnreadCount()
+})
+
+useNewMessage(() => chatStore.refreshUnreadCount())
+useConversationUpdate(() => chatStore.refreshUnreadCount())
 </script>
 
 <style scoped>

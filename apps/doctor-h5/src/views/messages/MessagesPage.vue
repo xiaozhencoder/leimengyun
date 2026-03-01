@@ -3,16 +3,27 @@
     <van-nav-bar title="消息" />
     <van-pull-refresh v-model="refreshing" @refresh="loadConversations">
       <van-cell-group v-if="conversations.length">
-        <van-cell v-for="conv in conversations" :key="conv.id" :title="conv.otherName"
-          :label="conv.lastMessage || '暂无消息'" is-link @click="$router.push('/chat/' + conv.id)">
+        <van-cell
+          v-for="conv in conversations"
+          :key="conv.id"
+          :title="conv.otherName"
+          :label="conv.lastMessage || '暂无消息'"
+          is-link
+          @click="$router.push('/chat/' + conv.id)"
+        >
           <template #icon>
-            <div class="msg-avatar">{{ conv.otherName?.[0] || '?' }}</div>
+            <van-badge
+              v-if="conv.unreadCount"
+              :content="conv.unreadCount"
+              :max="99"
+              class="msg-avatar-badge"
+            >
+              <div class="msg-avatar">{{ conv.otherName?.[0] || '?' }}</div>
+            </van-badge>
+            <div v-else class="msg-avatar">{{ conv.otherName?.[0] || '?' }}</div>
           </template>
           <template #value>
-            <div class="msg-right">
-              <span class="msg-time">{{ formatTime(conv.lastMessageAt) }}</span>
-              <van-badge v-if="conv.unreadCount" :content="conv.unreadCount" />
-            </div>
+            <span class="msg-time">{{ formatTime(conv.lastMessageAt) }}</span>
           </template>
         </van-cell>
       </van-cell-group>
@@ -24,9 +35,11 @@
 <script setup lang="ts">
 import { ref, onMounted, onActivated } from 'vue'
 import { getConversations } from '@/api/chat'
+import { useChatStore } from '@/stores/chat'
 import { useConversationUpdate, useNewMessage } from '@/api/socket'
 
 const conversations = ref<any[]>([])
+const chatStore = useChatStore()
 const refreshing = ref(false)
 
 function formatTime(dateStr: string) {
@@ -43,9 +56,16 @@ function formatTime(dateStr: string) {
 
 async function loadConversations() {
   refreshing.value = true
-  try { conversations.value = (await getConversations()) as any[] }
-  catch { conversations.value = [] }
-  finally { refreshing.value = false }
+  try {
+    const list = (await getConversations()) as any[]
+    conversations.value = list
+    chatStore.setTotalFromConversations(list)
+  } catch {
+    conversations.value = []
+    chatStore.setTotalFromConversations([])
+  } finally {
+    refreshing.value = false
+  }
 }
 
 useNewMessage(() => loadConversations())
@@ -57,6 +77,7 @@ onActivated(loadConversations)
 
 <style scoped>
 .msg-avatar { width: 40px; height: 40px; border-radius: 50%; background: #E8F8F0; color: #1AAD6E; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 16px; margin-right: 12px; }
-.msg-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-.msg-time { font-size: 11px; color: #c8c9cc; }
+.msg-avatar-badge { margin-right: 12px; }
+.msg-avatar-badge :deep(.van-badge__wrapper) { display: block; }
+.msg-time { font-size: 11px; color: #c8c9cc; flex-shrink: 0; }
 </style>

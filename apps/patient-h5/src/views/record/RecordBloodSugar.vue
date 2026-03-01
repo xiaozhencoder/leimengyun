@@ -38,7 +38,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { showSuccessToast, showFailToast } from 'vant'
+import { showError, showSuccess } from '@/utils/feedback'
 import { createBloodSugar } from '@/api/health'
 import { MEASURE_TIME_LABELS } from '@leimengyun/shared'
 
@@ -96,7 +96,7 @@ function onDateConfirm({ selectedValues }: { selectedValues: string[] }) {
 
 async function onSave() {
   if (value.value < 1.0 || value.value > 33.3) {
-    showFailToast('血糖值应在 1.0-33.3 之间')
+    showError('血糖值应在 1.0-33.3 之间')
     return
   }
   saving.value = true
@@ -107,10 +107,10 @@ async function onSave() {
       recordedAt: recordedAt.value,
       note: note.value || undefined,
     })
-    showSuccessToast('记录成功')
+    showSuccess('记录成功')
     setTimeout(() => router.back(), 500)
   } catch (err: any) {
-    showFailToast(err.response?.data?.message || '保存失败')
+    showError(err.response?.data?.message || '保存失败')
   } finally {
     saving.value = false
   }
