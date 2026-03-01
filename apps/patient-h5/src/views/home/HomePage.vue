@@ -51,13 +51,13 @@
       </div>
     </div>
 
-    <div class="card-header" style="margin-top: 12px">
-      <span>今日血糖曲线</span>
-      <span class="card-more link" @click="$router.push('/records')">查看全部 ›</span>
-    </div>
-    <van-cell-group inset style="margin-top: 0">
+    <div class="card chart-card">
+      <div class="card-title-row">
+        <span>今日血糖曲线</span>
+        <span class="card-more link" @click="$router.push('/records')">查看全部 ›</span>
+      </div>
       <BloodSugarChart :data="todayBloodSugars" mode="today" show-normal-range height="200px" />
-    </van-cell-group>
+    </div>
 
     <div class="card records-card">
       <div class="card-title-row">
@@ -98,17 +98,21 @@ import {
   TREATMENT_PLAN_LABELS,
 } from '@leimengyun/shared'
 
-const userStore = useUserStore()
-
-const summary = ref({ count: 0, average: 0, inRangeRate: 0, max: 0, min: 0 })
-const recentMixedRecords = ref<Array<{
+interface RecentRecordItem {
   id: string
   type: 'BS' | 'DIET' | 'MED'
   title: string
+  meta: string
   recordedAt: string
   value?: number
-}>>([])
-const todayBloodSugars = ref<{ recordedAt: string; value: number }[]>([])
+}
+
+const userStore = useUserStore()
+
+const summary = ref({ count: 0, average: 0, inRangeRate: 0, max: 0, min: 0 })
+const recentMixedRecords = ref<RecentRecordItem[]>([])
+interface BsPoint { recordedAt: string; value: number }
+const todayBloodSugars = ref<BsPoint[]>([])
 
 const todayDateLabel = computed(() => {
   const d = new Date()
@@ -130,6 +134,23 @@ const diabetesLabel = computed(() =>
 const treatmentLabel = computed(() =>
   userStore.profile ? TREATMENT_PLAN_LABELS[userStore.profile.treatmentPlan] || '' : '',
 )
+const managedDays = computed(() => {
+  const createdAt = userStore.profile?.createdAt
+  if (!createdAt) return null
+  const start = new Date(createdAt)
+  const now = new Date()
+  start.setHours(0, 0, 0, 0)
+  now.setHours(0, 0, 0, 0)
+  return Math.floor((now.getTime() - start.getTime()) / (24 * 60 * 60 * 1000))
+})
+const greetingMetaText = computed(() => {
+  if (!userStore.profile) return ''
+  const d = diabetesLabel.value
+  if (managedDays.value != null && managedDays.value >= 0) {
+    return `${d} · 已管理 ${managedDays.value}天`
+  }
+  return `${d} · ${treatmentLabel.value}`
+})
 
 function getMeasureTimeLabel(key: string) {
   return MEASURE_TIME_LABELS[key] || key
@@ -166,29 +187,51 @@ onMounted(async () => {
     const bs = (bsList as any[]) || []
     todayBloodSugars.value = ((bsToday as any[]) || []).map((r) => ({ recordedAt: r.recordedAt, value: r.value }))
 
-    const mixed: typeof recentMixedRecords.value = []
+    const INJECTION_SITE_LABELS: Record<string, string> = {
+      ABDOMEN: '腹部',
+      THIGH: '大腿',
+      ARM: '手臂',
+      BUTTOCK: '臀部',
+    }
+    const mixed: RecentRecordItem[] = []
     for (const r of bs) {
       mixed.push({
         id: r.id,
         type: 'BS',
         title: (MEASURE_TIME_LABELS[r.measureTime] || r.measureTime) + '血糖',
+        meta: formatTime(r.recordedAt),
         recordedAt: r.recordedAt,
         value: r.value,
       })
     }
     for (const r of (dietList as any[]) || []) {
+      const meal = MEAL_TYPE_LABELS[r.mealType] || r.mealType
+      const items = r.foodItems
+      let foodStr = ''
+      if (Array.isArray(items) && items.length) {
+        foodStr = items.map((f: any) => f.name || '').filter(Boolean).join(' + ')
+      }
+      const sep = ' \u00B7 '
+      const title = foodStr ? meal + sep + foodStr : meal + sep + '碳水 ' + r.totalCarbs + 'g'
+      const meta = formatTime(r.recordedAt) + sep + '碳水 ' + r.totalCarbs + 'g'
       mixed.push({
         id: r.id,
         type: 'DIET',
-        title: (MEAL_TYPE_LABELS[r.mealType] || r.mealType) + ' · 碳水 ' + r.totalCarbs + 'g',
+        title,
+        meta,
         recordedAt: r.recordedAt,
       })
     }
+    const sep = ' \u00B7 '
     for (const r of (medList as any[]) || []) {
+      const meta = r.injectionSite
+        ? formatTime(r.recordedAt) + sep + (INJECTION_SITE_LABELS[r.injectionSite] || r.injectionSite)
+        : formatTime(r.recordedAt)
       mixed.push({
         id: 'med-' + r.id,
         type: 'MED',
-        title: r.medName + ' · ' + r.dosage + r.dosageUnit,
+        title: r.medName + sep + r.dosage + r.dosageUnit,
+        meta,
         recordedAt: r.recordedAt,
       })
     }
@@ -201,25 +244,65 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.home-header {
+.home-header-bar {
   background: #1aad6e;
-  padding: 16px;
-  color: #fff;
+  height: 48px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  position: relative;
 }
-.bind-doctor-btn {
+.header-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #fff;
+}
+.header-add {
+  position: absolute;
+  right: 16px;
   color: #fff;
   padding: 4px;
 }
+.home-greeting {
+  background: #1aad6e;
+  padding: 16px;
+  color: #fff;
+}
 .greeting-text {
-  font-size: 15px;
+  font-size: 14px;
+  opacity: 0.9;
 }
 .greeting-meta {
-  font-size: 12px;
-  opacity: 0.8;
+  font-size: 13px;
+  opacity: 0.75;
   margin-top: 2px;
+}
+.card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 0 16px 12px;
+}
+.overview-card {
+  margin-top: 12px;
+}
+.chart-card,
+.records-card {
+  margin-top: 12px;
+}
+.card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 15px;
+  font-weight: 600;
+  color: #323233;
+  margin-bottom: 12px;
+}
+.card-date {
+  font-size: 12px;
+  color: #969799;
+  font-weight: 500;
 }
 .quick-actions {
   display: flex;
@@ -275,14 +358,8 @@ onMounted(async () => {
   color: #1aad6e;
   cursor: pointer;
 }
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px 10px;
-  font-size: 15px;
-  font-weight: 600;
-  color: #323233;
+.records-card .record-item:last-of-type {
+  border-bottom: none;
 }
 .record-item {
   display: flex;

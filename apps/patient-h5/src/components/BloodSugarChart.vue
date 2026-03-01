@@ -26,6 +26,13 @@ const chartRef = ref<HTMLDivElement>()
 let chart: echarts.ECharts | null = null
 const handleResize = () => chart?.resize()
 
+function getPointColor(value: number): string {
+  if (value < 3.9) return '#3B82F6'
+  if (value <= 7.8) return '#1AAD6E'
+  if (value <= 11.1) return '#FFB020'
+  return '#FF4D4F'
+}
+
 function initChart() {
   if (!chartRef.value) return
 
@@ -40,7 +47,7 @@ function initChart() {
     }
     return `${(dt.getMonth() + 1).toString().padStart(2, '0')}-${dt.getDate().toString().padStart(2, '0')}`
   })
-  let yData = sorted.map((d) => d.value)
+  const yData = sorted.map((d) => d.value)
 
   if (sorted.length === 0 && props.mode === 'today') {
     xData = ['06:00', '12:00', '18:00']
@@ -48,40 +55,64 @@ function initChart() {
     xData = []
   }
 
-  const minVal = yData.length ? Math.min(2, ...yData, 3.9) : 2
-  const maxVal = yData.length ? Math.max(15, ...yData, 11.1) : 15
+  const minY = 2
+  const maxY = 14
+  const normalMin = 3.9
+  const normalMax = 10
+
+  const seriesData = yData.map((val) => ({
+    value: val,
+    itemStyle: { color: getPointColor(val) },
+    label: {
+      show: true,
+      position: 'top',
+      formatter: () => Number(val).toFixed(1),
+      fontSize: 11,
+      fontWeight: 'bold',
+      color: getPointColor(val),
+    },
+  }))
 
   const series: echarts.SeriesOption[] = [
     {
       type: 'line',
       name: '血糖',
-      data: yData,
+      data: seriesData,
       smooth: true,
       symbol: 'circle',
-      symbolSize: 8,
+      symbolSize: 10,
       lineStyle: { color: '#1AAD6E', width: 2 },
-      itemStyle: { color: '#1AAD6E' },
       markArea: props.showNormalRange
-        ? ({ itemStyle: { color: 'rgba(26, 173, 110, 0.12)' }, data: [[{ yAxis: 3.9 }, { yAxis: 10 }]] } as any)
+        ? ({
+            silent: true,
+            itemStyle: { color: 'rgba(26, 173, 110, 0.08)' },
+            data: [
+              [
+                { yAxis: normalMin, label: { show: true, formatter: '正常范围', color: 'rgba(26, 173, 110, 0.6)', fontSize: 9, position: 'insideLeft' } },
+                { yAxis: normalMax },
+              ],
+            ],
+          } as any)
         : undefined,
     },
   ]
 
   const option: echarts.EChartsOption = {
-    grid: { left: 40, right: 16, top: 16, bottom: 32 },
+    grid: { left: 40, right: 16, top: 28, bottom: 32 },
     xAxis: {
       type: 'category',
       data: xData,
       axisLine: { lineStyle: { color: '#ebedf0' } },
-      axisLabel: { fontSize: 11, color: '#969799' },
+      axisLabel: { fontSize: 10, color: '#969799' },
     },
     yAxis: {
       type: 'value',
-      min: minVal,
-      max: maxVal,
+      min: minY,
+      max: maxY,
+      interval: 2,
       axisLine: { show: false },
       splitLine: { lineStyle: { color: '#ebedf0', type: 'dashed' } },
-      axisLabel: { fontSize: 11, color: '#969799' },
+      axisLabel: { fontSize: 10, color: '#969799' },
     },
     series,
   }

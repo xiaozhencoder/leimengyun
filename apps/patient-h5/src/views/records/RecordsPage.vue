@@ -77,10 +77,13 @@ const trendChartData = computed(() => {
   }
   return Object.entries(byDate)
     .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([date, vals]) => ({
-      recordedAt: date + 'T12:00:00',
-      value: vals.reduce((a, b) => a + b, 0) / vals.length,
-    }))
+    .map(([date, vals]) => {
+      const avg = vals.reduce((a, b) => a + b, 0) / vals.length
+      return {
+        recordedAt: date + 'T12:00:00',
+        value: Math.round(avg * 10) / 10,
+      }
+    })
 })
 
 const dateGroups = computed(() => {
