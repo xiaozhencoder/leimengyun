@@ -1,18 +1,15 @@
 <template>
   <div class="chat-page">
-    <van-nav-bar :title="chatTitle" left-arrow @click-left="$router.back()" />
-    <div v-if="patientRecentBs.length" class="bs-quick-bar">
-      <span class="bs-quick-label">最近血糖</span>
-      <div class="bs-quick-values">
-        <span
-          v-for="(item, i) in patientRecentBs"
-          :key="i"
-          class="bs-quick-item"
-          :style="{ color: getBsColor(item.value) }"
-        >
-          {{ item.label }} {{ item.value }}
-        </span>
-      </div>
+    <van-nav-bar :title="chatTitle" left-arrow class="chat-header" @click-left="$router.back()">
+      <template #right>
+        <span v-if="patientUserId" class="header-archive" @click.stop="goToPatientDetail">档案</span>
+      </template>
+    </van-nav-bar>
+    <div v-if="latestBs" class="bs-quick-bar">
+      <span class="bs-quick-text">
+        最近血糖: <strong :class="'bs-' + latestBs.statusClass">{{ latestBs.value }}</strong> mmol/L ({{ latestBs.label }} {{ latestBs.time }})
+      </span>
+      <span :class="['bs-status-tag', 'tag-' + latestBs.statusClass]">{{ latestBs.statusLabel }}</span>
     </div>
     <div class="chat-body" ref="chatBody">
       <template v-for="(msg, idx) in messages" :key="msg.id">
@@ -59,7 +56,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onActivated, onDeactivated, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { showFailToast, showImagePreview } from 'vant'
 import { useUserStore } from '@/stores/user'
 import { useChatStore } from '@/stores/chat'
@@ -69,6 +66,7 @@ import { useNewMessage } from '@/api/socket'
 import { MEASURE_TIME_LABELS } from '@leimengyun/shared'
 
 const route = useRoute()
+const router = useRouter()
 const userStore = useUserStore()
 const chatStore = useChatStore()
 const conversationId = route.params.id as string
@@ -79,7 +77,13 @@ const messages = ref<any[]>([])
 const chatBody = ref<HTMLElement>()
 const loading = ref(true)
 const patientUserId = ref<string | null>(null)
-const patientRecentBs = ref<{ label: string; value: number }[]>([])
+const latestBs = ref<{
+  label: string
+  value: number
+  time: string
+  statusClass: string
+  statusLabel: string
+} | null>(null)
 
 function formatMsgTime(dateStr: string) {
   const d = new Date(dateStr)
@@ -101,6 +105,24 @@ function getBsColor(v: number) {
   if (v <= 7.8) return '#1AAD6E'
   if (v <= 11.1) return '#FFB020'
   return '#FF4D4F'
+}
+
+function getBsStatus(value: number): { class: string; label: string } {
+  if (value < 3.9) return { class: 'low', label: '偏低' }
+  if (value <= 7.8) return { class: 'normal', label: '正常' }
+  if (value <= 11.1) return { class: 'high', label: '偏高' }
+  return { class: 'danger', label: '高' }
+}
+
+function formatTimeOnly(dateStr: string) {
+  const d = new Date(dateStr)
+  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
+}
+
+function goToPatientDetail() {
+  if (patientUserId.value) {
+    router.push('/patient/' + patientUserId.value)
+  }
 }
 
 function formatBsCardAsText(content: string): string {
@@ -174,6 +196,8 @@ async function loadMessages() {
 }
 
 async function loadConvInfo() {
+  latestBs.value = null
+  patientUserId.value = null
   try {
     const convs = (await getConversations()) as any[]
     const conv = convs.find((c: any) => c.id === conversationId)
@@ -189,14 +213,24 @@ async function loadConvInfo() {
 
 async function loadPatientRecentBs(patientId: string) {
   try {
-    const res = (await getPatientHealthData(patientId, 1)) as any
-    const list = (res.bloodSugars || []).slice(-5)
-    patientRecentBs.value = list.map((r: any) => ({
-      label: (MEASURE_TIME_LABELS as Record<string, string>)[r.measureTime] || r.measureTime || '',
-      value: r.value,
-    }))
+    const res = (await getPatientHealthData(patientId, 7)) as any
+    const list = res.bloodSugars || []
+    const latest = list[0]
+    if (latest) {
+      const label = (MEASURE_TIME_LABELS as Record<string, string>)[latest.measureTime] || latest.measureTime || ''
+      const status = getBsStatus(latest.value)
+      latestBs.value = {
+        label,
+        value: latest.value,
+        time: formatTimeOnly(latest.recordedAt),
+        statusClass: status.class,
+        statusLabel: status.label,
+      }
+    } else {
+      latestBs.value = null
+    }
   } catch {
-    patientRecentBs.value = []
+    latestBs.value = null
   }
 }
 
@@ -245,10 +279,47 @@ onDeactivated(() => chatStore.refreshUnreadCount())
 
 <style scoped>
 .chat-page { display: flex; flex-direction: column; height: 100vh; }
-.bs-quick-bar { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: #E8F8F0; font-size: 12px; border-bottom: 1px solid #ebedf0; }
-.bs-quick-label { color: #646566; font-weight: 600; }
-.bs-quick-values { display: flex; flex-wrap: wrap; gap: 8px; }
-.bs-quick-item { font-weight: 600; }
+
+.chat-header {
+  background: #3b82f6 !important;
+}
+.chat-header :deep(.van-nav-bar__title),
+.chat-header :deep(.van-icon),
+.chat-header :deep(.van-nav-bar__text) {
+  color: #fff !important;
+}
+.header-archive {
+  font-size: 14px;
+  color: #fff;
+  cursor: pointer;
+}
+
+.bs-quick-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: #fff;
+  font-size: 12px;
+  color: #969799;
+  border-bottom: 1px solid #ebedf0;
+}
+.bs-quick-text strong { font-size: 14px; font-weight: 600; }
+.bs-quick-text .bs-low { color: #3b82f6; }
+.bs-quick-text .bs-normal { color: #1aad6e; }
+.bs-quick-text .bs-high { color: #b8860b; }
+.bs-quick-text .bs-danger { color: #ff4d4f; }
+.bs-status-tag {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+.bs-status-tag.tag-low { background: #ebf5ff; color: #3b82f6; }
+.bs-status-tag.tag-normal { background: #e8f8f0; color: #1aad6e; }
+.bs-status-tag.tag-high { background: #fff8e6; color: #b8860b; }
+.bs-status-tag.tag-danger { background: #fff0f0; color: #ff4d4f; }
 .chat-body { flex: 1; overflow-y: auto; padding: 12px 16px; background: #f5f5f5; display: flex; flex-direction: column; gap: 8px; }
 .time-divider { text-align: center; font-size: 11px; color: #969799; padding: 6px 0; }
 .chat-msg { display: flex; gap: 8px; max-width: 80%; }
