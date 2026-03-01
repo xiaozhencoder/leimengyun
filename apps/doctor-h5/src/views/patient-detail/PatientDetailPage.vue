@@ -10,6 +10,31 @@
         </div>
       </div>
 
+      <van-cell-group inset title="血糖趋势" style="margin-top: 12px">
+        <div class="trend-header">
+          <van-button
+            size="small"
+            :type="chartDays === 7 ? 'primary' : 'default'"
+            @click="chartDays = 7; loadChartData()"
+          >
+            7天
+          </van-button>
+          <van-button
+            size="small"
+            :type="chartDays === 30 ? 'primary' : 'default'"
+            @click="chartDays = 30; loadChartData()"
+          >
+            30天
+          </van-button>
+        </div>
+        <BloodSugarChart
+          :data="trendChartData"
+          mode="trend"
+          :show-normal-range="true"
+          height="180px"
+        />
+      </van-cell-group>
+
       <van-cell-group inset title="今日数据">
         <div class="stats-grid">
           <div class="stat-item"><span class="stat-value" :style="{ color: data.summary.average ? '#1AAD6E' : '#969799' }">{{ data.summary.average || '--' }}</span><span class="stat-label">平均血糖</span></div>
@@ -44,16 +69,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getPatientHealthData } from '@/api/patients'
 import { getConversations } from '@/api/chat'
 import { MEASURE_TIME_LABELS, MEAL_TYPE_LABELS, DIABETES_TYPE_LABELS, TREATMENT_PLAN_LABELS } from '@leimengyun/shared'
+import BloodSugarChart from '@/components/BloodSugarChart.vue'
 
 const route = useRoute()
 const router = useRouter()
 const patientUserId = route.params.id as string
 const data = ref<any>(null)
+const chartDays = ref<7 | 30>(7)
+const chartBloodSugars = ref<{ recordedAt: string; value: number }[]>([])
+
+const trendChartData = computed(() => {
+  const byDate: Record<string, number[]> = {}
+  for (const r of chartBloodSugars.value) {
+    const d = r.recordedAt.slice(0, 10)
+    if (!byDate[d]) byDate[d] = []
+    byDate[d].push(r.value)
+  }
+  return Object.entries(byDate)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([date, vals]) => ({
+      recordedAt: date + 'T12:00:00',
+      value: vals.reduce((a, b) => a + b, 0) / vals.length,
+    }))
+})
 
 function formatDiabetes(t: string) { return DIABETES_TYPE_LABELS[t] || t }
 function formatTreatment(t: string) { return TREATMENT_PLAN_LABELS[t] || t }
@@ -79,9 +122,26 @@ async function goChat() {
   } catch { router.push('/messages') }
 }
 
+async function loadChartData() {
+  try {
+    const res = (await getPatientHealthData(patientUserId, chartDays.value)) as any
+    chartBloodSugars.value = (res.bloodSugars || []).map((r: any) => ({
+      recordedAt: r.recordedAt,
+      value: r.value,
+    }))
+  } catch {
+    chartBloodSugars.value = []
+  }
+}
+
 onMounted(async () => {
-  try { data.value = await getPatientHealthData(patientUserId) }
-  catch { /* handle error */ }
+  try {
+    data.value = await getPatientHealthData(patientUserId, chartDays.value)
+    chartBloodSugars.value = (data.value?.bloodSugars || []).map((r: any) => ({
+      recordedAt: r.recordedAt,
+      value: r.value,
+    }))
+  } catch { /* handle error */ }
 })
 </script>
 
@@ -95,4 +155,5 @@ onMounted(async () => {
 .stat-item + .stat-item { border-left: 1px solid #ebedf0; }
 .stat-value { font-size: 22px; font-weight: 700; display: block; }
 .stat-label { font-size: 11px; color: #969799; display: block; margin-top: 2px; }
+.trend-header { display: flex; gap: 8px; padding: 8px 0; }
 </style>

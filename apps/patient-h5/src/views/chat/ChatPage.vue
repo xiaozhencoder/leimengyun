@@ -7,7 +7,20 @@
         <div class="chat-msg" :class="{ self: msg.senderId === myUserId, pending: msg._pending }">
           <div v-if="msg.senderId !== myUserId" class="msg-avatar">{{ chatTitle?.[0] || '?' }}</div>
           <div class="msg-content">
-            <div class="msg-bubble">{{ msg.content }}</div>
+            <div class="msg-bubble" v-if="msg.contentType === 'IMAGE'">
+              <img :src="msg.content" class="msg-img" alt="图片" @click="previewImage(msg.content)" />
+            </div>
+            <div class="msg-bubble" v-else-if="msg.contentType === 'BLOOD_SUGAR_CARD'">
+              <div class="bs-card" v-if="parseBsCard(msg.content)">
+                <span class="bs-card-label">血糖分享</span>
+                <span class="bs-card-value" :style="{ color: getBsColor(parseBsCard(msg.content)!.value) }">
+                  {{ parseBsCard(msg.content)!.value }} mmol/L
+                </span>
+                <span class="bs-card-time">{{ parseBsCard(msg.content)!.time }}</span>
+              </div>
+              <span v-else>{{ msg.content }}</span>
+            </div>
+            <div class="msg-bubble" v-else>{{ msg.content }}</div>
             <div class="msg-meta">
               <span class="msg-time">{{ formatMsgTime(msg.createdAt) }}</span>
               <van-loading v-if="msg._pending" size="12px" class="msg-sending" />
@@ -23,6 +36,26 @@
         placeholder="输入消息..."
         @keyup.enter="handleSend"
       >
+        <template #left-icon>
+          <div class="input-actions">
+            <van-icon
+              name="chart-trending-o"
+              size="22"
+              class="input-icon"
+              title="分享血糖"
+              @click="shareRecentBloodSugar"
+            />
+            <van-uploader
+            :after-read="onImageSelect"
+            accept="image/*"
+            :max-size="5 * 1024 * 1024"
+            :show-upload="false"
+            result-type="dataUrl"
+          >
+              <van-icon name="photograph" size="22" class="input-icon" />
+            </van-uploader>
+          </div>
+        </template>
         <template #button>
           <van-button
             size="small"
@@ -41,10 +74,11 @@
 <script setup lang="ts">
 import { ref, onMounted, onActivated, onDeactivated, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
-import { showFailToast } from 'vant'
+import { showFailToast, showImagePreview } from 'vant'
 import { useUserStore } from '@/stores/user'
 import { useChatStore } from '@/stores/chat'
 import { getMessages, sendMessage, markRead, getConversations } from '@/api/chat'
+import { getBloodSugars } from '@/api/health'
 import { useNewMessage } from '@/api/socket'
 
 const route = useRoute()
@@ -74,6 +108,95 @@ function formatTimeDivider(dateStr: string) {
   if (isToday) return `今天 ${formatMsgTime(dateStr)}`
   if (isYesterday) return `昨天 ${formatMsgTime(dateStr)}`
   return `${d.getMonth() + 1}月${d.getDate()}日 ${formatMsgTime(dateStr)}`
+}
+
+function getBsColor(v: number) {
+  if (v < 3.9) return '#3B82F6'
+  if (v <= 7.8) return '#1AAD6E'
+  if (v <= 11.1) return '#FFB020'
+  return '#FF4D4F'
+}
+
+function parseBsCard(content: string): { value: number; time: string } | null {
+  try {
+    const o = JSON.parse(content)
+    if (o && typeof o.value === 'number') return { value: o.value, time: o.time || '' }
+  } catch { /* ignore */ }
+  return null
+}
+
+function previewImage(url: string) {
+  showImagePreview([url])
+}
+
+async function onImageSelect(file: any) {
+  const f = Array.isArray(file) ? file[0] : file
+  if (!f?.file) return
+  const dataUrl = f.content || (await readFileAsDataURL(f.file))
+  if (!dataUrl) return
+  const tempId = `temp-img-${Date.now()}`
+  const tempMsg = {
+    id: tempId,
+    senderId: myUserId.value,
+    contentType: 'IMAGE',
+    content: dataUrl,
+    isRead: false,
+    createdAt: new Date().toISOString(),
+    _pending: true,
+  }
+  messages.value.push(tempMsg)
+  await scrollToBottom()
+  try {
+    const realMsg = await sendMessage(conversationId, dataUrl, 'IMAGE')
+    const idx = messages.value.findIndex((m) => m.id === tempId)
+    if (idx >= 0) messages.value[idx] = { ...realMsg, _pending: false }
+  } catch (err: any) {
+    const idx = messages.value.findIndex((m) => m.id === tempId)
+    if (idx >= 0) messages.value.splice(idx, 1)
+    showFailToast(err.response?.data?.message || '发送失败')
+  }
+}
+
+async function shareRecentBloodSugar() {
+  try {
+    const list = (await getBloodSugars(1)) as any[]
+    const latest = list?.length ? list[list.length - 1] : null
+    if (!latest) {
+      showFailToast('暂无血糖记录')
+      return
+    }
+    const content = JSON.stringify({
+      value: latest.value,
+      measureTime: latest.measureTime,
+      time: new Date(latest.recordedAt).toLocaleString('zh-CN'),
+    })
+    const tempId = `temp-bs-${Date.now()}`
+    const tempMsg = {
+      id: tempId,
+      senderId: myUserId.value,
+      contentType: 'BLOOD_SUGAR_CARD',
+      content,
+      isRead: false,
+      createdAt: new Date().toISOString(),
+      _pending: true,
+    }
+    messages.value.push(tempMsg)
+    await scrollToBottom()
+    const realMsg = await sendMessage(conversationId, content, 'BLOOD_SUGAR_CARD')
+    const idx = messages.value.findIndex((m) => m.id === tempId)
+    if (idx >= 0) messages.value[idx] = { ...realMsg, _pending: false }
+  } catch (err: any) {
+    showFailToast(err.response?.data?.message || '分享失败')
+  }
+}
+
+function readFileAsDataURL(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader()
+    r.onload = () => resolve(r.result as string)
+    r.onerror = reject
+    r.readAsDataURL(file)
+  })
 }
 
 function showTimeDivider(idx: number) {
@@ -252,4 +375,28 @@ onDeactivated(() => {
   border-top: 1px solid #ebedf0;
   background: #fff;
 }
+.input-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.input-icon {
+  padding: 0 4px;
+  color: #646566;
+}
+.msg-img {
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: 8px;
+  display: block;
+  cursor: pointer;
+}
+.bs-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bs-card-label { font-size: 12px; color: #969799; }
+.bs-card-value { font-size: 18px; font-weight: 700; }
+.bs-card-time { font-size: 11px; color: #c8c9cc; }
 </style>

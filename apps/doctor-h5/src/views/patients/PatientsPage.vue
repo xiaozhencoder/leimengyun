@@ -3,6 +3,42 @@
     <van-nav-bar title="我的患者" />
     <van-search v-model="search" placeholder="搜索患者姓名" />
 
+    <van-cell-group inset title="概览" style="margin-top: 12px">
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span class="stat-value">{{ stats.totalPatients }}</span>
+          <span class="stat-label">管理患者</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" :style="{ color: stats.todayAlerts > 0 ? '#FFB020' : '#969799' }">
+            {{ stats.todayAlerts }}
+          </span>
+          <span class="stat-label">今日异常</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" :style="{ color: stats.pending > 0 ? '#FF4D4F' : '#969799' }">
+            {{ stats.pending }}
+          </span>
+          <span class="stat-label">待处理</span>
+        </div>
+      </div>
+    </van-cell-group>
+
+    <van-cell-group v-if="abnormalPatients.length" inset title="血糖异常患者" style="margin-top: 12px">
+      <van-cell
+        v-for="p in abnormalPatients"
+        :key="p.bindId"
+        :title="p.nickname"
+        :label="`${formatDiabetes(p.diabetesType)} · 今日血糖 ${p.todayAvg}`"
+        is-link
+        @click="$router.push('/patient/' + p.patientUserId)"
+      >
+        <template #value>
+          <span :style="{ color: getBsColor(p.todayAvg), fontWeight: 700 }">{{ p.todayAvg }}</span>
+        </template>
+      </van-cell>
+    </van-cell-group>
+
     <van-cell-group v-if="pendingBinds.length" inset title="待审核" style="margin-top: 12px">
       <van-cell v-for="b in pendingBinds" :key="b.bindId" :title="b.nickname" :label="formatDiabetes(b.diabetesType)">
         <template #right-icon>
@@ -49,6 +85,19 @@ const filteredPatients = computed(() => {
   return patients.value.filter((p: any) => p.nickname?.includes(search.value))
 })
 
+const stats = computed(() => ({
+  totalPatients: patients.value.length,
+  todayAlerts: abnormalPatients.value.length,
+  pending: pendingBinds.value.length,
+}))
+
+const abnormalPatients = computed(() =>
+  patients.value.filter((p: any) => {
+    const v = p.todayAvg
+    return v != null && (v < 3.9 || v > 10)
+  })
+)
+
 function formatDiabetes(t: string) { return DIABETES_TYPE_LABELS[t] || t }
 function formatTreatment(t: string) { return TREATMENT_PLAN_LABELS[t] || t }
 function getBsColor(v: number) {
@@ -91,3 +140,28 @@ async function handleReject(bindId: string) {
 
 onMounted(loadData)
 </script>
+
+<style scoped>
+.stats-grid {
+  display: flex;
+  padding: 12px 0;
+}
+.stat-item {
+  flex: 1;
+  text-align: center;
+}
+.stat-item + .stat-item {
+  border-left: 1px solid #ebedf0;
+}
+.stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  display: block;
+}
+.stat-label {
+  font-size: 11px;
+  color: #969799;
+  display: block;
+  margin-top: 2px;
+}
+</style>

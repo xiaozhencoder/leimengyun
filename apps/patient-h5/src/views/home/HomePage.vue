@@ -7,6 +7,12 @@
           {{ diabetesLabel }} · {{ treatmentLabel }}
         </p>
       </div>
+      <van-icon
+        name="add-o"
+        size="24"
+        class="bind-doctor-btn"
+        @click="$router.push('/bind-doctor')"
+      />
     </div>
 
     <div class="quick-actions">
@@ -23,6 +29,10 @@
         <span class="action-label">记录用药</span>
       </div>
     </div>
+
+    <van-cell-group inset title="今日血糖曲线" style="margin-top: 12px">
+      <BloodSugarChart :data="todayBloodSugars" mode="today" show-normal-range height="200px" />
+    </van-cell-group>
 
     <van-cell-group inset title="今日概览" style="margin-top: 12px">
       <div class="stats-grid">
@@ -45,20 +55,26 @@
       </div>
     </van-cell-group>
 
-    <van-cell-group inset title="最近血糖记录" style="margin-top: 12px">
-      <template v-if="recentRecords.length">
+    <van-cell-group inset title="最近记录" style="margin-top: 12px">
+      <template v-if="recentMixedRecords.length">
         <van-cell
-          v-for="item in recentRecords"
+          v-for="item in recentMixedRecords"
           :key="item.id"
-          :title="getMeasureTimeLabel(item.measureTime)"
+          :title="item.title"
           :label="formatTime(item.recordedAt)"
+          is-link
+          @click="$router.push('/records')"
         >
-          <template #value>
-            <span :style="{ color: getBsColor(item.value), fontWeight: 700, fontSize: '16px' }">
+            <template #value>
+            <span
+              v-if="item.type === 'BS' && item.value != null"
+              :style="{ color: getBsColor(item.value!), fontWeight: 700, fontSize: '16px' }"
+            >
               {{ item.value }}
             </span>
           </template>
         </van-cell>
+        <van-cell title="查看更多" is-link @click="$router.push('/records')" />
       </template>
       <van-empty v-else description="暂无记录，点击上方按钮开始记录" image="search" />
     </van-cell-group>
@@ -68,9 +84,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
-import { getTodaySummary, getBloodSugars } from '@/api/health'
+import { getTodaySummary, getBloodSugars, getDiets, getMedications } from '@/api/health'
+import BloodSugarChart from '@/components/BloodSugarChart.vue'
 import {
   MEASURE_TIME_LABELS,
+  MEAL_TYPE_LABELS,
   DIABETES_TYPE_LABELS,
   TREATMENT_PLAN_LABELS,
 } from '@leimengyun/shared'
@@ -78,7 +96,14 @@ import {
 const userStore = useUserStore()
 
 const summary = ref({ count: 0, average: 0, inRangeRate: 0, max: 0, min: 0 })
-const recentRecords = ref<any[]>([])
+const recentMixedRecords = ref<Array<{
+  id: string
+  type: 'BS' | 'DIET' | 'MED'
+  title: string
+  recordedAt: string
+  value?: number
+}>>([])
+const todayBloodSugars = ref<{ recordedAt: string; value: number }[]>([])
 
 const greetingText = computed(() => {
   const h = new Date().getHours()
@@ -114,9 +139,45 @@ function getBsColor(value: number) {
 
 onMounted(async () => {
   try {
-    const [s, records] = await Promise.all([getTodaySummary(), getBloodSugars(1)])
+    const [s, bsToday, bsList, dietList, medList] = await Promise.all([
+      getTodaySummary(),
+      getBloodSugars(1),
+      getBloodSugars(7),
+      getDiets(7),
+      getMedications(7),
+    ])
     summary.value = s as any
-    recentRecords.value = (records as any[]).slice(0, 10)
+    const bs = (bsList as any[]) || []
+    todayBloodSugars.value = ((bsToday as any[]) || []).map((r) => ({ recordedAt: r.recordedAt, value: r.value }))
+
+    const mixed: typeof recentMixedRecords.value = []
+    for (const r of bs) {
+      mixed.push({
+        id: r.id,
+        type: 'BS',
+        title: (MEASURE_TIME_LABELS[r.measureTime] || r.measureTime) + '血糖',
+        recordedAt: r.recordedAt,
+        value: r.value,
+      })
+    }
+    for (const r of (dietList as any[]) || []) {
+      mixed.push({
+        id: r.id,
+        type: 'DIET',
+        title: (MEAL_TYPE_LABELS[r.mealType] || r.mealType) + ' · 碳水 ' + r.totalCarbs + 'g',
+        recordedAt: r.recordedAt,
+      })
+    }
+    for (const r of (medList as any[]) || []) {
+      mixed.push({
+        id: 'med-' + r.id,
+        type: 'MED',
+        title: r.medName + ' · ' + r.dosage + r.dosageUnit,
+        recordedAt: r.recordedAt,
+      })
+    }
+    mixed.sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())
+    recentMixedRecords.value = mixed.slice(0, 10)
   } catch {
     // API not ready yet, show empty state
   }
@@ -128,6 +189,13 @@ onMounted(async () => {
   background: #1aad6e;
   padding: 16px;
   color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.bind-doctor-btn {
+  color: #fff;
+  padding: 4px;
 }
 .greeting-text {
   font-size: 15px;

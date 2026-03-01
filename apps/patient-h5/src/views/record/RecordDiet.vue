@@ -22,6 +22,17 @@
       <span class="carbs-value">{{ totalCarbs }} g</span>
     </div>
 
+    <van-cell-group inset title="食物拍照（可选）" style="margin-top: 12px">
+      <van-uploader
+        v-model="photoFileList"
+        :max-count="1"
+        accept="image/*"
+        result-type="dataUrl"
+      >
+        <van-button icon="photograph" type="primary" plain size="small">拍照/选图</van-button>
+      </van-uploader>
+    </van-cell-group>
+
     <van-cell-group inset style="margin-top: 12px">
       <van-field v-model="note" label="备注" type="textarea" placeholder="可选" rows="2" maxlength="200" />
     </van-cell-group>
@@ -45,6 +56,7 @@ const saving = ref(false)
 const mealType = ref('LUNCH')
 const note = ref('')
 const showMealPicker = ref(false)
+const photoFileList = ref<Array<{ content?: string }>>([])
 
 const foodItems = ref([
   { name: '', quantity: '', carbs: 0 },
@@ -68,10 +80,12 @@ async function onSave() {
   if (!items.length) { showError('请至少添加一项食物'); return }
   saving.value = true
   try {
+    const photo = photoFileList.value[0]?.content
     await createDiet({
       mealType: mealType.value,
       foodItems: items,
       totalCarbs: totalCarbs.value,
+      photoUrl: photo || undefined,
       recordedAt: new Date().toISOString(),
       note: note.value || undefined,
     })

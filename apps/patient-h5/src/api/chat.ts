@@ -8,7 +8,11 @@ export function getMessages(conversationId: string) {
   return client.get(`/chat/conversations/${conversationId}/messages`)
 }
 
-export function sendMessage(conversationId: string, content: string, contentType = 'TEXT') {
+export function sendMessage(
+  conversationId: string,
+  content: string,
+  contentType: 'TEXT' | 'IMAGE' | 'BLOOD_SUGAR_CARD' = 'TEXT'
+) {
   return client.post('/chat/messages', { conversationId, content, contentType })
 }
 
