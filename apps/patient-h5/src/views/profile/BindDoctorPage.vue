@@ -4,7 +4,7 @@
     <van-search v-model="keyword" placeholder="搜索医生姓名/医院" @search="loadDoctors" />
 
     <van-cell-group v-if="myDoctors.length" inset title="已绑定医生" style="margin-top: 12px">
-      <van-cell v-for="d in myDoctors" :key="d.bindId" :title="d.realName" :label="`${d.hospital} · ${d.department}`" is-link @click="goChat(d.doctorUserId)">
+      <van-cell v-for="d in myDoctors" :key="d.bindId" :title="d.realName" :label="`${d.hospital} · ${d.department}`" is-link @click="goChat(d)">
         <template #icon>
           <div class="doc-avatar">{{ d.realName?.[0] || '医' }}</div>
         </template>
@@ -12,8 +12,8 @@
     </van-cell-group>
 
     <van-cell-group inset :title="myDoctors.length ? '更多医生' : '推荐医生'" style="margin-top: 12px">
-      <van-empty v-if="!doctors.length && !loading" description="暂无可绑定的医生" />
-      <van-cell v-for="d in doctors" :key="d.userId" :title="d.realName" :label="`${d.hospital} · ${d.department}`">
+      <van-empty v-if="!doctorsToShow.length && !loading" description="暂无可绑定的医生" />
+      <van-cell v-for="d in doctorsToShow" :key="d.user.id" :title="d.realName" :label="`${d.hospital} · ${d.department}`">
         <template #icon>
           <div class="doc-avatar">{{ d.realName?.[0] || '医' }}</div>
         </template>
@@ -26,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { showSuccessToast, showFailToast } from 'vant'
 import { searchDoctors, bindDoctor, getMyDoctors } from '@/api/user'
@@ -37,6 +37,11 @@ const doctors = ref<any[]>([])
 const myDoctors = ref<any[]>([])
 const loading = ref(false)
 const bindingId = ref('')
+
+const doctorsToShow = computed(() => {
+  const boundIds = new Set(myDoctors.value.map((m) => m.doctorUserId))
+  return doctors.value.filter((d) => d.user?.id && !boundIds.has(d.user.id))
+})
 
 async function loadDoctors() {
   loading.value = true
@@ -55,14 +60,18 @@ async function handleBind(doctorUserId: string) {
   try {
     await bindDoctor(doctorUserId)
     showSuccessToast('绑定申请已发送')
-    await loadDoctors()
+    await Promise.all([loadDoctors(), loadMyDoctors()])
   } catch (err: any) {
     showFailToast(err.response?.data?.message || '绑定失败')
   } finally { bindingId.value = '' }
 }
 
-function goChat(doctorUserId: string) {
-  router.push(`/chat/${doctorUserId}`)
+function goChat(d: { conversationId?: string | null }) {
+  if (d.conversationId) {
+    router.push('/chat/' + d.conversationId)
+  } else {
+    showFailToast('会话不存在')
+  }
 }
 
 onMounted(() => { loadDoctors(); loadMyDoctors() })

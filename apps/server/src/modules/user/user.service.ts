@@ -106,13 +106,21 @@ export class UserService {
         },
       },
     })
-    return binds.map((b) => ({
-      bindId: b.id,
-      doctorUserId: b.doctorId,
-      ...b.doctor.doctorProfile,
-      avatarUrl: b.doctor.avatarUrl,
-      boundAt: b.createdAt,
-    }))
+    const result: any[] = []
+    for (const b of binds) {
+      const conv = await this.prisma.conversation.findUnique({
+        where: { patientId_doctorId: { patientId: patientUserId, doctorId: b.doctorId } },
+      })
+      result.push({
+        bindId: b.id,
+        doctorUserId: b.doctorId,
+        conversationId: conv?.id || null,
+        ...b.doctor.doctorProfile,
+        avatarUrl: b.doctor.avatarUrl,
+        boundAt: b.createdAt,
+      })
+    }
+    return result
   }
 
   async getMyPatients(doctorUserId: string) {
