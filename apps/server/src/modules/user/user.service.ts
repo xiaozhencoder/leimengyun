@@ -149,7 +149,7 @@ export class UserService {
       })
       const avg = bsRecords.length > 0
         ? Math.round((bsRecords.reduce((s, r) => s + r.value, 0) / bsRecords.length) * 10) / 10
-        : 0
+        : null
 
       const latest = await this.prisma.bloodSugarRecord.findFirst({
         where: { patientId: profile.id },

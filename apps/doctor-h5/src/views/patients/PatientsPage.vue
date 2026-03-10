@@ -120,7 +120,7 @@ const stats = computed(() => ({
 const abnormalPatients = computed(() =>
   patients.value.filter((p: any) => {
     const v = p.todayAvg
-    return v != null && (v < 3.9 || v > 10)
+    return p.todayCount > 0 && v != null && (v < 3.9 || v > 10)
   })
 )
 
