@@ -52,7 +52,15 @@ export class ChatService {
         ATTENDING: '主治医师',
         RESIDENT: '住院医师',
       }
-      const otherTag = isPatient ? dp?.department || (dp?.title ? TITLE_LABELS[dp.title] || '') : ''
+
+      let otherTag = ''
+      if (isPatient && dp) {
+        if (dp.department) {
+          otherTag = dp.department
+        } else if (dp.title && TITLE_LABELS[dp.title]) {
+          otherTag = TITLE_LABELS[dp.title]
+        }
+      }
 
       const lastMsg = await this.prisma.message.findFirst({
         where: { conversationId: conv.id },
