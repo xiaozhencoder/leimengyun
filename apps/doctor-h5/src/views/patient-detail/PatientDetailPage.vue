@@ -45,19 +45,42 @@
 
       <van-cell-group inset title="血糖记录" style="margin-top: 12px">
         <van-empty v-if="!data.bloodSugars.length" description="暂无记录" />
-        <van-cell v-for="r in data.bloodSugars.slice(0, 10)" :key="r.id" :title="formatMeasureTime(r.measureTime)" :label="formatDateTime(r.recordedAt)">
-          <template #value><span :style="{ color: getBsColor(r.value), fontWeight: 700 }">{{ r.value }}</span></template>
-        </van-cell>
+        <div v-else class="records-block">
+          <div v-for="r in data.bloodSugars.slice(0, 10)" :key="r.id" class="record-item">
+            <div class="record-icon record-icon-bs">🩸</div>
+            <div class="record-content">
+              <div class="record-title">{{ formatMeasureTime(r.measureTime) }}</div>
+              <div class="record-meta">{{ formatTimeOnly(r.recordedAt) }}</div>
+            </div>
+            <div class="record-value" :style="{ color: getBsColor(r.value) }">{{ r.value }}</div>
+          </div>
+        </div>
       </van-cell-group>
 
       <van-cell-group inset title="饮食记录" style="margin-top: 12px">
         <van-empty v-if="!data.diets.length" description="暂无记录" />
-        <van-cell v-for="r in data.diets.slice(0, 5)" :key="r.id" :title="formatMealType(r.mealType) + ' · 碳水 ' + r.totalCarbs + 'g'" :label="formatDateTime(r.recordedAt)" />
+        <div v-else class="records-block">
+          <div v-for="r in data.diets.slice(0, 10)" :key="r.id" class="record-item">
+            <div class="record-icon record-icon-diet">🍱</div>
+            <div class="record-content">
+              <div class="record-title">{{ formatDietTitle(r) }}</div>
+              <div class="record-meta">{{ formatTimeOnly(r.recordedAt) }}・碳水 {{ r.totalCarbs }}g</div>
+            </div>
+          </div>
+        </div>
       </van-cell-group>
 
       <van-cell-group inset title="用药记录" style="margin-top: 12px">
         <van-empty v-if="!data.medications.length" description="暂无记录" />
-        <van-cell v-for="r in data.medications.slice(0, 5)" :key="r.id" :title="r.medName + ' · ' + r.dosage + r.dosageUnit" :label="formatDateTime(r.recordedAt)" />
+        <div v-else class="records-block">
+          <div v-for="r in data.medications.slice(0, 10)" :key="r.id" class="record-item">
+            <div class="record-icon record-icon-med">💊</div>
+            <div class="record-content">
+              <div class="record-title">{{ r.medName }}・{{ r.dosage }}{{ r.dosageUnit }}</div>
+              <div class="record-meta">{{ formatMedMeta(r) }}</div>
+            </div>
+          </div>
+        </div>
       </van-cell-group>
 
       <div style="padding: 16px">
@@ -98,13 +121,35 @@ const trendChartData = computed(() => {
     }))
 })
 
+const INJECTION_SITE_LABELS: Record<string, string> = {
+  ABDOMEN: '腹部',
+  THIGH: '大腿',
+  ARM: '手臂',
+  BUTTOCK: '臀部',
+}
+
 function formatDiabetes(t: string) { return DIABETES_TYPE_LABELS[t] || t }
 function formatTreatment(t: string) { return TREATMENT_PLAN_LABELS[t] || t }
 function formatMeasureTime(t: string) { return (MEASURE_TIME_LABELS[t] || t) + '血糖' }
 function formatMealType(t: string) { return MEAL_TYPE_LABELS[t] || t }
+function formatTimeOnly(s: string) {
+  const d = new Date(s)
+  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
+}
 function formatDateTime(s: string) {
   const d = new Date(s)
   return `${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`
+}
+function formatDietTitle(r: any) {
+  const meal = formatMealType(r.mealType)
+  const foodStr = Array.isArray(r.foodItems) && r.foodItems.length
+    ? r.foodItems.map((f: any) => f.name || '').filter(Boolean).join('+')
+    : ''
+  return foodStr ? meal + '・' + foodStr : meal + '・碳水 ' + r.totalCarbs + 'g'
+}
+function formatMedMeta(r: any) {
+  const time = formatTimeOnly(r.recordedAt)
+  return r.injectionSite ? time + '・' + (INJECTION_SITE_LABELS[r.injectionSite] || r.injectionSite) : time
 }
 function getBsColor(v: number) {
   if (v < 3.9) return '#3B82F6'
@@ -156,4 +201,31 @@ onMounted(async () => {
 .stat-value { font-size: 22px; font-weight: 700; display: block; }
 .stat-label { font-size: 11px; color: #969799; display: block; margin-top: 2px; }
 .trend-header { display: flex; gap: 8px; padding: 8px 0; }
+
+.records-block { padding: 0 16px; background: #fff; }
+.record-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 12px 0;
+  border-bottom: 1px solid #ebedf0;
+}
+.record-item:last-child { border-bottom: none; }
+.record-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+.record-icon-bs { background: #fff0f0; }
+.record-icon-diet { background: #fff8e6; }
+.record-icon-med { background: #e8f8f0; }
+.record-content { flex: 1; min-width: 0; }
+.record-title { font-size: 14px; font-weight: 500; color: #323233; }
+.record-meta { font-size: 12px; color: #969799; margin-top: 2px; }
+.record-value { font-size: 18px; font-weight: 700; flex-shrink: 0; margin-left: 8px; }
 </style>
