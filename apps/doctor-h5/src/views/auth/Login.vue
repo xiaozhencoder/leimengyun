@@ -102,9 +102,8 @@ async function handleLogin() {
     // Mock login for now
     userStore.setToken('mock-doctor-token')
     userStore.setUserInfo({
+  role: 'DOCTOR',
   doctorProfile: {
-      id: 'doc-1',
-      phone: phone.value,
       realName: '李明华',
       hospital: '北京协和医院',
       department: '内分泌科',

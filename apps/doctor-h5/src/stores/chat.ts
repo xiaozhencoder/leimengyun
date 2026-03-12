@@ -7,7 +7,7 @@ export const useChatStore = defineStore('chat', () => {
 
   async function refreshUnreadCount() {
     try {
-      const conversations = (await getConversations()) as { unreadCount?: number }[]
+      const conversations = (await getConversations()) as unknown as { unreadCount?: number }[]
       totalUnreadCount.value = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0)
     } catch {
       totalUnreadCount.value = 0

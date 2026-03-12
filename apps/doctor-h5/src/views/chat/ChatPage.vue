@@ -162,10 +162,10 @@ function previewImage(url: string) {
   showImagePreview([url])
 }
 
-async function onImageSelect(file: { file: File; content?: string } | { file: File; content?: string }[]) {
+async function onImageSelect(file: any) {
   const f = Array.isArray(file) ? file[0] : file
-  if (!f) return
-  const dataUrl = (f as { content?: string }).content || (await readFileAsDataURL(f.file))
+  if (!f?.file) return
+  const dataUrl = f.content || (await readFileAsDataURL(f.file))
   if (!dataUrl) return
   const tempId = `temp-img-${Date.now()}`
   const tempMsg = {
@@ -210,7 +210,7 @@ async function scrollToBottom() {
 async function loadMessages() {
   loading.value = true
   try {
-    messages.value = (await getMessages(conversationId)) as any[]
+    messages.value = (await getMessages(conversationId)) as unknown as any[]
     await markRead(conversationId)
     await scrollToBottom()
   } catch { /* ignore */ }
@@ -221,7 +221,7 @@ async function loadConvInfo() {
   latestBs.value = null
   patientUserId.value = null
   try {
-    const convs = (await getConversations()) as any[]
+    const convs = (await getConversations()) as unknown as any[]
     const conv = convs.find((c: any) => c.id === conversationId)
     if (conv) {
       chatTitle.value = conv.otherName

@@ -70,7 +70,7 @@ function initChart() {
       symbolSize: 8,
       lineStyle: { color: '#1AAD6E', width: 2 },
       itemStyle: { color: '#1AAD6E' },
-      markArea,
+      markArea: markArea as any,
     },
   ]
 

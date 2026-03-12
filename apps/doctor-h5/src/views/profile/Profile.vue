@@ -54,7 +54,7 @@ import { useUserStore } from '@/stores/user'
 const router = useRouter()
 const userStore = useUserStore()
 
-const doctor = computed(() => userStore.doctor || {
+const doctor = computed(() => userStore.profile || {
   realName: '医生',
   hospital: '',
   department: '',

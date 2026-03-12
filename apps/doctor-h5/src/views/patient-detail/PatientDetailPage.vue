@@ -160,7 +160,7 @@ function getBsColor(v: number) {
 
 async function goChat() {
   try {
-    const convs = (await getConversations()) as any[]
+    const convs = (await getConversations()) as unknown as any[]
     const conv = convs.find((c: any) => c.otherUserId === patientUserId)
     if (conv) router.push(`/chat/${conv.id}`)
     else router.push(`/messages`)

@@ -153,8 +153,8 @@ async function loadData() {
   refreshing.value = true
   try {
     const [p, b] = await Promise.all([getMyPatients(), getPendingBinds()])
-    patients.value = p as any[]
-    pendingBinds.value = b as any[]
+    patients.value = (p as unknown as any[]) || []
+    pendingBinds.value = (b as unknown as any[]) || []
   } catch { /* ignore */ }
   finally { loading.value = false; refreshing.value = false }
 }
