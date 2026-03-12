@@ -26,5 +26,6 @@
 - **Backend TypeScript**: The server `tsconfig.json` has `incremental: false` due to a stale-cache issue with NestJS watch mode. Do not re-enable it.
 - **Swagger docs** are available at `http://localhost:3000/api/docs` when the backend is running.
 - **Auth for dev**: The login API accepts any 6-digit code (e.g. `123456`) and auto-creates users.
+- **Admin account**: To create an admin, set a user's role to `ADMIN` in the database, e.g. `UPDATE users SET role = 'ADMIN' WHERE phone = '13800138000';` — then log in with that phone in the doctor H5 app to access 「审核医生」.
 - **All services** can be started simultaneously with `pnpm dev` from the workspace root.
 - **Frontend proxy**: Both Vue3 apps proxy `/api` requests to `localhost:3000` via Vite config.

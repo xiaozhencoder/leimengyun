@@ -92,6 +92,39 @@ export class HealthService {
     })
   }
 
+  async getMergedRecords(userId: string, days: number, page: number, pageSize: number) {
+    const patientId = await this.getPatientProfileId(userId)
+    const since = new Date()
+    since.setDate(since.getDate() - days)
+
+    const [bs, diet, med] = await Promise.all([
+      this.prisma.bloodSugarRecord.findMany({
+        where: { patientId, recordedAt: { gte: since } },
+        orderBy: { recordedAt: 'desc' },
+      }),
+      this.prisma.dietRecord.findMany({
+        where: { patientId, recordedAt: { gte: since } },
+        orderBy: { recordedAt: 'desc' },
+      }),
+      this.prisma.medicationRecord.findMany({
+        where: { patientId, recordedAt: { gte: since } },
+        orderBy: { recordedAt: 'desc' },
+      }),
+    ])
+
+    const mapped: { type: string; recordedAt: Date; id: string; raw: any }[] = [
+      ...bs.map((r) => ({ type: 'blood_sugar' as const, recordedAt: r.recordedAt, id: r.id, raw: r })),
+      ...diet.map((r) => ({ type: 'diet' as const, recordedAt: r.recordedAt, id: r.id, raw: r })),
+      ...med.map((r) => ({ type: 'medication' as const, recordedAt: r.recordedAt, id: r.id, raw: r })),
+    ]
+    mapped.sort((a, b) => b.recordedAt.getTime() - a.recordedAt.getTime())
+
+    const total = mapped.length
+    const skip = (page - 1) * pageSize
+    const list = mapped.slice(skip, skip + pageSize)
+    return { list, total, hasMore: skip + list.length < total }
+  }
+
   async getTodaySummary(userId: string, start?: string, end?: string) {
     const patientId = await this.getPatientProfileId(userId)
     let where: { patientId: string; recordedAt: { gte?: Date; lte?: Date } } = { patientId, recordedAt: {} }

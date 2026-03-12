@@ -1,9 +1,11 @@
-import { IsString, IsOptional, IsNumber, IsEnum, IsDateString } from 'class-validator'
+import { IsString, IsOptional, IsNumber, IsEnum, IsDateString, MinLength, MaxLength } from 'class-validator'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 
 export class CreatePatientProfileDto {
-  @ApiProperty({ example: '糖友小明' })
+  @ApiProperty({ example: '糖友小明', description: '2-20 个字符' })
   @IsString()
+  @MinLength(2, { message: '昵称至少 2 个字符' })
+  @MaxLength(20, { message: '昵称最多 20 个字符' })
   nickname: string
 
   @ApiProperty({ example: 'MALE' })
@@ -71,9 +73,11 @@ export class CreateDoctorProfileDto {
 }
 
 export class UpdatePatientProfileDto {
-  @ApiPropertyOptional({ example: '糖友小明' })
+  @ApiPropertyOptional({ example: '糖友小明', description: '2-20 个字符' })
   @IsOptional()
   @IsString()
+  @MinLength(2, { message: '昵称至少 2 个字符' })
+  @MaxLength(20, { message: '昵称最多 20 个字符' })
   nickname?: string
 
   @ApiPropertyOptional({ example: 'MALE' })

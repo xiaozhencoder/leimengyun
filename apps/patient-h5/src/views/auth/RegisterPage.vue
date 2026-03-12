@@ -8,8 +8,13 @@
           <van-field
             v-model="form.nickname"
             label="昵称"
-            placeholder="请输入昵称"
-            :rules="[{ required: true, message: '请输入昵称' }]"
+            placeholder="请输入昵称（2-20 个字符）"
+            maxlength="20"
+            show-word-limit
+            :rules="[
+              { required: true, message: '请输入昵称' },
+              { validator: (v: string) => (v?.length ?? 0) >= 2 && (v?.length ?? 0) <= 20, message: '昵称需 2-20 个字符' },
+            ]"
           />
           <van-field label="性别" :model-value="genderLabel" is-link readonly @click="showGender = true" />
           <van-field

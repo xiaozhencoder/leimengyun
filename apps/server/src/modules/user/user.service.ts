@@ -51,7 +51,7 @@ export class UserService {
         licenseNo: dto.licenseNo,
         specialties: dto.specialties,
         bio: dto.bio,
-        verifyStatus: 'APPROVED',
+        verifyStatus: 'PENDING',
       },
     })
   }

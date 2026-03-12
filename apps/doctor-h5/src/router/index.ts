@@ -41,6 +41,12 @@ const routes = [
     component: () => import('@/views/profile/DoctorInfoPage.vue'),
     meta: { auth: true },
   },
+  {
+    path: '/pending-doctors',
+    name: 'PendingDoctors',
+    component: () => import('@/views/admin/PendingDoctorsPage.vue'),
+    meta: { auth: true, adminOnly: true },
+  },
 ]
 
 const router = createRouter({
@@ -52,15 +58,21 @@ router.beforeEach(async (to, _from, next) => {
   const userStore = useUserStore()
 
   if (to.meta.auth && !userStore.isLoggedIn) return next('/login')
-  if (to.meta.guest && userStore.isLoggedIn) return next('/')
+  if (to.meta.guest && userStore.isLoggedIn) {
+    const role = (userStore.userInfo as any)?.role
+    return next(role === 'ADMIN' ? '/pending-doctors' : '/')
+  }
 
   if (to.meta.auth && userStore.isLoggedIn && !userStore.userInfo) {
     const userData = await userStore.fetchUser()
     if (!userStore.isLoggedIn) return next('/login')
+    const role = (userData as any)?.role
     const hasProfile = !!(userData as any)?.doctorProfile
+    if (role === 'ADMIN') return next()
     if (!hasProfile && to.name !== 'Register') return next('/register')
   }
 
+  if (to.meta.adminOnly && (userStore.userInfo as any)?.role !== 'ADMIN') return next('/')
   next()
 })
 

@@ -36,6 +36,8 @@
       <van-field
         v-model="inputMsg"
         placeholder="输入消息..."
+        maxlength="500"
+        show-word-limit
         @keyup.enter="handleSend"
       >
         <template #left-icon>

@@ -2,7 +2,7 @@
   <div class="register-page">
     <van-nav-bar title="完善医生信息" left-arrow @click-left="handleUseOtherAccount" />
     <div class="form-section">
-      <p class="form-tip">请填写您的专业信息，提交后需管理员审核</p>
+      <p class="form-tip">请填写您的专业信息，提交后需管理员审核，审核通过后可被患者搜索和绑定。</p>
       <van-form @submit="onSubmit">
         <van-cell-group inset>
           <van-field v-model="form.realName" label="真实姓名" placeholder="请输入" :rules="[{ required: true }]" />
@@ -64,7 +64,7 @@ async function onSubmit() {
       bio: form.value.bio || undefined,
     })
     await userStore.fetchUser()
-    showSuccessToast('提交成功，等待审核')
+    showSuccessToast('提交成功，等待审核。审核通过后可被患者搜索。')
     setTimeout(() => router.replace('/'), 500)
   } catch (err: any) {
     showFailToast(err.response?.data?.message || '提交失败')

@@ -9,7 +9,7 @@
         @click="activeTab = i"
       >{{ tab }}</span>
     </div>
-    <van-pull-refresh v-model="refreshing" @refresh="loadRecords">
+    <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
       <div class="chart-card">
         <div class="chart-header">
           <span>血糖趋势</span>
@@ -32,7 +32,13 @@
         />
       </div>
 
-      <template v-if="displayGroups.length">
+      <van-list
+        v-if="displayGroups.length"
+        :finished="!hasMore"
+        finished-text="没有更多了"
+        :loading="loadingMore"
+        @load="loadMore"
+      >
         <template v-for="group in displayGroups" :key="group.date">
           <div class="date-group-header">{{ group.dateLabel }}</div>
           <div class="records-block">
@@ -50,26 +56,29 @@
             </div>
           </div>
         </template>
-      </template>
-      <van-empty v-else description="暂无记录" />
+      </van-list>
+      <van-empty v-else-if="!loadingMore && !refreshing" description="暂无记录" />
     </van-pull-refresh>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { getBloodSugars, getDiets, getMedications, toLocalDateString } from '@/api/health'
+import { getBloodSugars, getMergedRecords, toLocalDateString } from '@/api/health'
+import type { MergedRecordItem } from '@/api/health'
 import { MEASURE_TIME_LABELS, MEAL_TYPE_LABELS } from '@leimengyun/shared'
 import BloodSugarChart from '@/components/BloodSugarChart.vue'
+
+const RECORDS_DAYS = 30
+const PAGE_SIZE = 20
 
 const filterTabs = ['全部', '血糖', '饮食', '用药']
 const activeTab = ref(0)
 const refreshing = ref(false)
-const rawRecords = ref<{
-  bs: any[]
-  diet: any[]
-  med: any[]
-}>({ bs: [], diet: [], med: [] })
+const loadingMore = ref(false)
+const rawMergedList = ref<MergedRecordItem[]>([])
+const page = ref(1)
+const hasMore = ref(true)
 const rawBloodSugars = ref<any[]>([])
 const trendDays = ref<7 | 30>(7)
 
@@ -111,54 +120,56 @@ interface RecordItem {
   type: 'BS' | 'DIET' | 'MED'
 }
 
-const flatRecords = computed((): RecordItem[] => {
-  const items: RecordItem[] = []
-  for (const r of rawRecords.value.bs) {
-    items.push({
+function mapMergedToRecordItem(m: MergedRecordItem): RecordItem {
+  const r = m.raw
+  const recordedAt = typeof m.recordedAt === 'string' ? m.recordedAt : (m.recordedAt as Date).toISOString?.() ?? ''
+  if (m.type === 'blood_sugar') {
+    return {
       id: r.id,
-      dateKey: toLocalDateString(r.recordedAt),
+      dateKey: toLocalDateString(recordedAt),
       title: (MEASURE_TIME_LABELS[r.measureTime] || r.measureTime) + '血糖',
-      meta: formatTimeOnly(r.recordedAt),
+      meta: formatTimeOnly(recordedAt),
       value: String(r.value),
       color: getBsColor(r.value),
       icon: '\u{1FA78}',
       iconClass: 'record-icon-bs',
-      recordedAt: r.recordedAt,
+      recordedAt,
       type: 'BS',
-    })
+    }
   }
-  for (const r of rawRecords.value.diet) {
+  if (m.type === 'diet') {
     const meal = MEAL_TYPE_LABELS[r.mealType] || r.mealType
     const foodStr = Array.isArray(r.foodItems) && r.foodItems.length
       ? r.foodItems.map((f: any) => f.name || '').filter(Boolean).join('+')
       : ''
-    items.push({
+    return {
       id: r.id,
-      dateKey: toLocalDateString(r.recordedAt),
+      dateKey: toLocalDateString(recordedAt),
       title: foodStr ? meal + '・' + foodStr : meal + '・碳水 ' + r.totalCarbs + 'g',
-      meta: formatTimeOnly(r.recordedAt) + '・碳水 ' + r.totalCarbs + 'g',
+      meta: formatTimeOnly(recordedAt) + '・碳水 ' + r.totalCarbs + 'g',
       icon: '\u{1F371}',
       iconClass: 'record-icon-diet',
-      recordedAt: r.recordedAt,
+      recordedAt,
       type: 'DIET',
-    })
+    }
   }
-  for (const r of rawRecords.value.med) {
-    const meta = r.injectionSite
-      ? formatTimeOnly(r.recordedAt) + '・' + (INJECTION_SITE_LABELS[r.injectionSite] || r.injectionSite)
-      : formatTimeOnly(r.recordedAt)
-    items.push({
-      id: 'med-' + r.id,
-      dateKey: toLocalDateString(r.recordedAt),
-      title: r.medName + '・' + r.dosage + r.dosageUnit,
-      meta,
-      icon: '\u{1F48A}',
-      iconClass: 'record-icon-med',
-      recordedAt: r.recordedAt,
-      type: 'MED',
-    })
+  const meta = r.injectionSite
+    ? formatTimeOnly(recordedAt) + '・' + (INJECTION_SITE_LABELS[r.injectionSite] || r.injectionSite)
+    : formatTimeOnly(recordedAt)
+  return {
+    id: 'med-' + r.id,
+    dateKey: toLocalDateString(recordedAt),
+    title: r.medName + '・' + r.dosage + r.dosageUnit,
+    meta,
+    icon: '\u{1F48A}',
+    iconClass: 'record-icon-med',
+    recordedAt,
+    type: 'MED',
   }
-  return items.sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())
+}
+
+const flatRecords = computed((): RecordItem[] => {
+  return rawMergedList.value.map(mapMergedToRecordItem)
 })
 
 const filteredRecords = computed(() => {
@@ -228,38 +239,63 @@ function formatTimeOnly(dateStr: string) {
   return d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0')
 }
 
-async function loadRecords() {
+async function fetchPage(pageNum: number, append: boolean) {
+  const res = (await getMergedRecords(RECORDS_DAYS, pageNum, PAGE_SIZE)) as unknown as {
+    list: MergedRecordItem[]
+    total: number
+    hasMore: boolean
+  }
+  const list = res.list || []
+  if (append) rawMergedList.value = [...rawMergedList.value, ...list]
+  else rawMergedList.value = list
+  hasMore.value = !!res.hasMore
+}
+
+async function onRefresh() {
   refreshing.value = true
   try {
-    const [bsData, dietData, medData] = await Promise.all([
-      getBloodSugars(30) as Promise<any[]>,
-      getDiets(30) as Promise<any[]>,
-      getMedications(30) as Promise<any[]>,
-    ])
-    rawRecords.value = {
-      bs: bsData || [],
-      diet: dietData || [],
-      med: medData || [],
-    }
+    page.value = 1
+    await fetchPage(1, false)
     await loadTrendData()
   } catch {
-    rawRecords.value = { bs: [], diet: [], med: [] }
-    rawBloodSugars.value = []
+    rawMergedList.value = []
+    hasMore.value = false
   } finally {
     refreshing.value = false
   }
 }
 
+function loadMore() {
+  if (loadingMore.value || !hasMore.value) return
+  loadingMore.value = true
+  const nextPage = page.value + 1
+  fetchPage(nextPage, true)
+    .then(() => { page.value = nextPage })
+    .catch(() => {})
+    .finally(() => { loadingMore.value = false })
+}
+
 async function loadTrendData() {
   try {
-    const data = (await getBloodSugars(trendDays.value)) as any[]
-    rawBloodSugars.value = data || []
+    const data = await getBloodSugars(trendDays.value)
+    rawBloodSugars.value = Array.isArray(data) ? data : []
   } catch {
     rawBloodSugars.value = []
   }
 }
 
-onMounted(loadRecords)
+onMounted(async () => {
+  refreshing.value = true
+  try {
+    page.value = 1
+    await fetchPage(1, false)
+    await loadTrendData()
+  } catch {
+    rawMergedList.value = []
+  } finally {
+    refreshing.value = false
+  }
+})
 </script>
 
 <style scoped>

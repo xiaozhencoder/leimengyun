@@ -43,7 +43,13 @@
       <van-empty v-if="!messages.length && !loading" description="发送一条消息开始对话" image="search" />
     </div>
     <div class="chat-input-bar">
-      <van-field v-model="inputMsg" placeholder="输入消息..." @keyup.enter="handleSend">
+      <van-field
+        v-model="inputMsg"
+        placeholder="输入消息..."
+        maxlength="500"
+        show-word-limit
+        @keyup.enter="handleSend"
+      >
         <template #left-icon>
           <van-uploader
             :after-read="onImageSelect"

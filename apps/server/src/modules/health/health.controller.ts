@@ -52,6 +52,22 @@ export class HealthController {
     return this.healthService.getMedications(req.user.id, parseInt(days || '7'))
   }
 
+  @Get('records')
+  @ApiOperation({ summary: '获取合并健康记录（分页，按日期倒序）' })
+  async getMergedRecords(
+    @Request() req,
+    @Query('days') days?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.healthService.getMergedRecords(
+      req.user.id,
+      parseInt(days || '30', 10),
+      parseInt(page || '1', 10),
+      parseInt(pageSize || '20', 10),
+    )
+  }
+
   @Get('today-summary')
   @ApiOperation({ summary: '获取今日概览' })
   async getTodaySummary(

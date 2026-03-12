@@ -51,8 +51,11 @@ async function onSubmit() {
       showFailToast('登录失败，请重试')
       return
     }
+    const role = (userData as any)?.role
     const hasProfile = !!(userData as any)?.doctorProfile
-    if (result.isNewUser || !hasProfile) {
+    if (role === 'ADMIN') {
+      router.replace('/pending-doctors')
+    } else if (result.isNewUser || !hasProfile) {
       router.push('/register')
     } else {
       router.push('/')

@@ -62,6 +62,19 @@ export function getMedications(days = 7) {
   return client.get('/health/medication', { params: { days } })
 }
 
+export interface MergedRecordItem {
+  type: 'blood_sugar' | 'diet' | 'medication'
+  recordedAt: string
+  id: string
+  raw: any
+}
+
+export function getMergedRecords(days = 30, page = 1, pageSize = 20) {
+  return client.get<{ list: MergedRecordItem[]; total: number; hasMore: boolean }>('/health/records', {
+    params: { days, page, pageSize },
+  })
+}
+
 export function getTodaySummary(opts?: { start?: string; end?: string }) {
   const params = opts?.start && opts?.end ? { start: opts.start, end: opts.end } : {}
   return client.get('/health/today-summary', { params })

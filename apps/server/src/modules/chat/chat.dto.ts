@@ -1,4 +1,4 @@
-import { IsString, IsOptional } from 'class-validator'
+import { IsString, IsOptional, MaxLength } from 'class-validator'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 
 export class SendMessageDto {
@@ -11,7 +11,8 @@ export class SendMessageDto {
   @IsString()
   contentType?: string
 
-  @ApiProperty({ example: '您好医生', description: '消息内容' })
+  @ApiProperty({ example: '您好医生', description: '消息内容，文字消息限 500 字' })
   @IsString()
+  @MaxLength(500, { message: '消息内容最多 500 字' })
   content: string
 }
