@@ -30,7 +30,13 @@
       </van-cell-group>
 
       <div class="verify-section">
-        <van-tag type="success" size="large">✓ 已认证</van-tag>
+        <van-tag v-if="verifyStatus === 'APPROVED'" type="success" size="large">✓ 已认证</van-tag>
+        <van-tag v-else-if="verifyStatus === 'PENDING'" type="warning" size="large">审核中</van-tag>
+        <template v-else-if="verifyStatus === 'REJECTED'">
+          <van-tag type="danger" size="large">审核未通过</van-tag>
+          <p v-if="rejectReason" class="verify-reject-reason">拒绝原因：{{ rejectReason }}</p>
+          <van-button size="small" type="primary" class="verify-reapply" @click="startEdit">重新申请</van-button>
+        </template>
       </div>
     </div>
 
@@ -110,6 +116,8 @@ const showDept = ref(false)
 const showTitle = ref(false)
 
 const profile = computed(() => userStore.profile)
+const verifyStatus = computed(() => (userStore.profile as any)?.verifyStatus ?? '')
+const rejectReason = computed(() => (userStore.profile as any)?.rejectReason ?? '')
 
 const titleActions = [
   { name: '主任医师', value: 'CHIEF' },
@@ -212,6 +220,15 @@ onMounted(() => {
 .verify-section {
   padding: 16px;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
+.verify-reject-reason {
+  font-size: 13px;
+  color: #cf1322;
+  margin: 4px 0 0;
+  text-align: center;
+}
+.verify-reapply { margin-top: 8px; }
 </style>

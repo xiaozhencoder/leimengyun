@@ -18,7 +18,7 @@
             <van-button size="small" type="primary" :loading="item._approving" @click="handleApprove(item)">
               通过
             </van-button>
-            <van-button size="small" plain type="danger" :loading="item._rejecting" @click="handleReject(item)">
+            <van-button size="small" plain type="danger" :loading="item._rejecting" @click="showRejectDialog(item)">
               拒绝
             </van-button>
           </div>
@@ -26,6 +26,23 @@
       </van-list>
       <van-empty v-else-if="!loading" description="暂无待审核医生" />
     </van-pull-refresh>
+
+    <van-dialog
+      v-model:show="rejectShow"
+      title="拒绝原因（选填）"
+      show-cancel-button
+      :before-close="onRejectBeforeClose"
+    >
+      <van-field
+        v-model="rejectReason"
+        type="textarea"
+        placeholder="请输入拒绝原因，将展示给医生"
+        rows="3"
+        maxlength="200"
+        show-word-limit
+        style="margin: 12px 16px;"
+      />
+    </van-dialog>
   </div>
 </template>
 
@@ -58,6 +75,9 @@ function titleLabel(title: string) {
 const list = ref<(PendingDoctorItem & { _approving?: boolean; _rejecting?: boolean })[]>([])
 const loading = ref(true)
 const refreshing = ref(false)
+const rejectShow = ref(false)
+const rejectReason = ref('')
+const rejectTarget = ref<(PendingDoctorItem & { _rejecting?: boolean }) | null>(null)
 
 async function loadList() {
   if (!refreshing.value) loading.value = true
@@ -85,17 +105,30 @@ async function handleApprove(item: PendingDoctorItem & { _approving?: boolean })
   }
 }
 
-async function handleReject(item: PendingDoctorItem & { _rejecting?: boolean }) {
+function showRejectDialog(item: PendingDoctorItem & { _rejecting?: boolean }) {
+  rejectTarget.value = item
+  rejectReason.value = ''
+  rejectShow.value = true
+}
+
+function onRejectBeforeClose(action: string) {
+  if (action !== 'confirm' || !rejectTarget.value) return Promise.resolve(true)
+  const item = rejectTarget.value
   item._rejecting = true
-  try {
-    await rejectDoctor(item.userId)
-    showSuccessToast('已拒绝')
-    list.value = list.value.filter((d) => d.userId !== item.userId)
-  } catch (e: any) {
-    showFailToast(e.response?.data?.message || '操作失败')
-  } finally {
-    item._rejecting = false
-  }
+  return rejectDoctor(item.userId, rejectReason.value.trim() || undefined)
+    .then(() => {
+      showSuccessToast('已拒绝')
+      list.value = list.value.filter((d) => d.userId !== item.userId)
+      rejectTarget.value = null
+      return true
+    })
+    .catch((e: any) => {
+      showFailToast(e.response?.data?.message || '操作失败')
+      return false
+    })
+    .finally(() => {
+      item._rejecting = false
+    })
 }
 
 onMounted(loadList)

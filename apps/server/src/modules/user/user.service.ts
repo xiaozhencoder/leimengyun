@@ -77,15 +77,20 @@ export class UserService {
   async updateDoctorProfile(userId: string, dto: UpdateDoctorProfileDto) {
     const profile = await this.prisma.doctorProfile.findUnique({ where: { userId } })
     if (!profile) throw new NotFoundException('医生档案不存在')
+    const data: any = {
+      ...(dto.hospital !== undefined && { hospital: dto.hospital }),
+      ...(dto.department !== undefined && { department: dto.department }),
+      ...(dto.title !== undefined && { title: dto.title as any }),
+      ...(dto.specialties !== undefined && { specialties: dto.specialties }),
+      ...(dto.bio !== undefined && { bio: dto.bio }),
+    }
+    if (profile.verifyStatus === 'REJECTED') {
+      data.verifyStatus = 'PENDING'
+      data.rejectReason = null
+    }
     return this.prisma.doctorProfile.update({
       where: { userId },
-      data: {
-        ...(dto.hospital !== undefined && { hospital: dto.hospital }),
-        ...(dto.department !== undefined && { department: dto.department }),
-        ...(dto.title !== undefined && { title: dto.title as any }),
-        ...(dto.specialties !== undefined && { specialties: dto.specialties }),
-        ...(dto.bio !== undefined && { bio: dto.bio }),
-      },
+      data,
     })
   }
 
@@ -129,7 +134,7 @@ export class UserService {
 
   async getMyDoctors(patientUserId: string) {
     const binds = await this.prisma.doctorPatientBind.findMany({
-      where: { patientId: patientUserId, status: 'ACCEPTED' },
+      where: { patientId: patientUserId, status: { in: ['ACCEPTED', 'PENDING'] } },
       include: {
         doctor: {
           select: {
@@ -142,12 +147,15 @@ export class UserService {
     })
     const result: any[] = []
     for (const b of binds) {
-      const conv = await this.prisma.conversation.findUnique({
-        where: { patientId_doctorId: { patientId: patientUserId, doctorId: b.doctorId } },
-      })
+      const conv = b.status === 'ACCEPTED'
+        ? await this.prisma.conversation.findUnique({
+            where: { patientId_doctorId: { patientId: patientUserId, doctorId: b.doctorId } },
+          })
+        : null
       result.push({
         bindId: b.id,
         doctorUserId: b.doctorId,
+        bindStatus: b.status,
         conversationId: conv?.id || null,
         ...b.doctor.doctorProfile,
         avatarUrl: b.doctor.avatarUrl,

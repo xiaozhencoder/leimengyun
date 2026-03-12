@@ -106,6 +106,7 @@ model DoctorProfile {
   specialties  String?
   bio          String?
   verifyStatus VerifyStatus @default(PENDING) @map("verify_status")
+  rejectReason String?      @map("reject_reason")
   createdAt    DateTime     @default(now()) @map("created_at")
   updatedAt    DateTime     @updatedAt @map("updated_at")
 

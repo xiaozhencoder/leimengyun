@@ -23,6 +23,6 @@ export function approveDoctor(doctorUserId: string) {
   return client.put(`/admin/doctors/${doctorUserId}/approve`)
 }
 
-export function rejectDoctor(doctorUserId: string) {
-  return client.put(`/admin/doctors/${doctorUserId}/reject`)
+export function rejectDoctor(doctorUserId: string, reason?: string) {
+  return client.put(`/admin/doctors/${doctorUserId}/reject`, { reason: reason || undefined })
 }

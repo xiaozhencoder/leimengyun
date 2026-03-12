@@ -1,5 +1,5 @@
-import { Controller, Get, Put, Param, Query, UseGuards } from '@nestjs/common'
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger'
+import { Controller, Get, Put, Param, Query, Body, UseGuards } from '@nestjs/common'
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { AdminGuard } from './admin.guard'
 import { AdminService } from './admin.service'
@@ -31,7 +31,11 @@ export class AdminController {
 
   @Put('doctors/:doctorUserId/reject')
   @ApiOperation({ summary: '审核拒绝医生' })
-  async rejectDoctor(@Param('doctorUserId') doctorUserId: string) {
-    return this.adminService.rejectDoctor(doctorUserId)
+  @ApiBody({ schema: { type: 'object', properties: { reason: { type: 'string' } } } })
+  async rejectDoctor(
+    @Param('doctorUserId') doctorUserId: string,
+    @Body('reason') reason?: string,
+  ) {
+    return this.adminService.rejectDoctor(doctorUserId, reason)
   }
 }

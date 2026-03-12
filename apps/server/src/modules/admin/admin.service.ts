@@ -37,14 +37,14 @@ export class AdminService {
     })
   }
 
-  async rejectDoctor(doctorUserId: string) {
+  async rejectDoctor(doctorUserId: string, reason?: string) {
     const profile = await this.prisma.doctorProfile.findUnique({
       where: { userId: doctorUserId },
     })
     if (!profile) throw new NotFoundException('医生档案不存在')
     return this.prisma.doctorProfile.update({
       where: { userId: doctorUserId },
-      data: { verifyStatus: 'REJECTED' },
+      data: { verifyStatus: 'REJECTED', rejectReason: reason ?? null },
       include: { user: { select: { id: true, phone: true } } },
     })
   }
