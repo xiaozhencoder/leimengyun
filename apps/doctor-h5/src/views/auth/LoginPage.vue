@@ -47,7 +47,12 @@ async function onSubmit() {
     const result: any = await login(phone.value, code.value)
     userStore.setToken(result.token)
     const userData = await userStore.fetchUser()
-    if (result.isNewUser || !userData?.doctorProfile) {
+    if (userData == null) {
+      showFailToast('登录失败，请重试')
+      return
+    }
+    const hasProfile = !!(userData as any)?.doctorProfile
+    if (result.isNewUser || !hasProfile) {
       router.push('/register')
     } else {
       router.push('/')

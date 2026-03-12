@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common'
 import { PrismaService } from '../common/prisma.service'
-import { CreatePatientProfileDto, CreateDoctorProfileDto } from './user.dto'
+import { CreatePatientProfileDto, CreateDoctorProfileDto, UpdatePatientProfileDto, UpdateDoctorProfileDto } from './user.dto'
 
 @Injectable()
 export class UserService {
@@ -51,6 +51,39 @@ export class UserService {
         specialties: dto.specialties,
         bio: dto.bio,
         verifyStatus: 'APPROVED',
+      },
+    })
+  }
+
+  async updatePatientProfile(userId: string, dto: UpdatePatientProfileDto) {
+    const profile = await this.prisma.patientProfile.findUnique({ where: { userId } })
+    if (!profile) throw new NotFoundException('患者档案不存在')
+    return this.prisma.patientProfile.update({
+      where: { userId },
+      data: {
+        ...(dto.nickname !== undefined && { nickname: dto.nickname }),
+        ...(dto.gender !== undefined && { gender: dto.gender }),
+        ...(dto.birthDate !== undefined && { birthDate: new Date(dto.birthDate) }),
+        ...(dto.diabetesType !== undefined && { diabetesType: dto.diabetesType as any }),
+        ...(dto.treatmentPlan !== undefined && { treatmentPlan: dto.treatmentPlan as any }),
+        ...(dto.diagnosisDate !== undefined && { diagnosisDate: dto.diagnosisDate ? new Date(dto.diagnosisDate) : null }),
+        ...(dto.height !== undefined && { height: dto.height }),
+        ...(dto.weight !== undefined && { weight: dto.weight }),
+      },
+    })
+  }
+
+  async updateDoctorProfile(userId: string, dto: UpdateDoctorProfileDto) {
+    const profile = await this.prisma.doctorProfile.findUnique({ where: { userId } })
+    if (!profile) throw new NotFoundException('医生档案不存在')
+    return this.prisma.doctorProfile.update({
+      where: { userId },
+      data: {
+        ...(dto.hospital !== undefined && { hospital: dto.hospital }),
+        ...(dto.department !== undefined && { department: dto.department }),
+        ...(dto.title !== undefined && { title: dto.title as any }),
+        ...(dto.specialties !== undefined && { specialties: dto.specialties }),
+        ...(dto.bio !== undefined && { bio: dto.bio }),
       },
     })
   }

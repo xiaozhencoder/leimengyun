@@ -27,3 +27,13 @@ export function getDoctorStats() {
 export function updateProfile(data: Record<string, unknown>) {
   return client.put('/auth/profile', data)
 }
+
+export function updateDoctorProfile(data: {
+  hospital?: string
+  department?: string
+  title?: string
+  specialties?: string
+  bio?: string
+}) {
+  return client.patch('/users/doctor-profile', data)
+}

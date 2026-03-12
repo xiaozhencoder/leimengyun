@@ -1,8 +1,8 @@
-import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, Request } from '@nestjs/common'
+import { Controller, Get, Post, Put, Patch, Body, Param, Query, UseGuards, Request } from '@nestjs/common'
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { UserService } from './user.service'
-import { CreatePatientProfileDto, CreateDoctorProfileDto } from './user.dto'
+import { CreatePatientProfileDto, CreateDoctorProfileDto, UpdatePatientProfileDto, UpdateDoctorProfileDto } from './user.dto'
 
 @ApiTags('用户')
 @Controller('users')
@@ -31,6 +31,22 @@ export class UserController {
   @ApiOperation({ summary: '创建医生档案' })
   async createDoctorProfile(@Request() req, @Body() dto: CreateDoctorProfileDto) {
     return this.userService.createDoctorProfile(req.user.id, dto)
+  }
+
+  @Patch('patient-profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '更新患者档案' })
+  async updatePatientProfile(@Request() req, @Body() dto: UpdatePatientProfileDto) {
+    return this.userService.updatePatientProfile(req.user.id, dto)
+  }
+
+  @Patch('doctor-profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '更新医生档案' })
+  async updateDoctorProfile(@Request() req, @Body() dto: UpdateDoctorProfileDto) {
+    return this.userService.updateDoctorProfile(req.user.id, dto)
   }
 
   @Get('doctors')

@@ -11,3 +11,16 @@ export function bindDoctor(doctorUserId: string) {
 export function getMyDoctors() {
   return client.get('/users/my-doctors')
 }
+
+export function updatePatientProfile(data: {
+  nickname?: string
+  gender?: string
+  birthDate?: string
+  diabetesType?: string
+  treatmentPlan?: string
+  diagnosisDate?: string
+  height?: number
+  weight?: number
+}) {
+  return client.patch('/users/patient-profile', data)
+}

@@ -62,6 +62,7 @@ function formatTime(dateStr: string) {
 function formatPreview(conv: { lastMessage?: string; lastMessageType?: string }) {
   const type = conv.lastMessageType || 'TEXT'
   if (type === 'IMAGE') return '[图片]'
+  if (type === 'BLOOD_SUGAR_CARD') return '[血糖记录]'
   return conv.lastMessage || '暂无消息'
 }
 

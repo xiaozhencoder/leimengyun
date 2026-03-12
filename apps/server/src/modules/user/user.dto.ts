@@ -69,3 +69,72 @@ export class CreateDoctorProfileDto {
   @IsString()
   bio?: string
 }
+
+export class UpdatePatientProfileDto {
+  @ApiPropertyOptional({ example: '糖友小明' })
+  @IsOptional()
+  @IsString()
+  nickname?: string
+
+  @ApiPropertyOptional({ example: 'MALE' })
+  @IsOptional()
+  @IsString()
+  gender?: string
+
+  @ApiPropertyOptional({ example: '1990-05-15' })
+  @IsOptional()
+  @IsDateString()
+  birthDate?: string
+
+  @ApiPropertyOptional({ example: 'TYPE_1' })
+  @IsOptional()
+  @IsString()
+  diabetesType?: string
+
+  @ApiPropertyOptional({ example: 'CSII' })
+  @IsOptional()
+  @IsString()
+  treatmentPlan?: string
+
+  @ApiPropertyOptional({ example: '2025-04-10' })
+  @IsOptional()
+  @IsDateString()
+  diagnosisDate?: string
+
+  @ApiPropertyOptional({ example: 175 })
+  @IsOptional()
+  @IsNumber()
+  height?: number
+
+  @ApiPropertyOptional({ example: 68 })
+  @IsOptional()
+  @IsNumber()
+  weight?: number
+}
+
+export class UpdateDoctorProfileDto {
+  @ApiPropertyOptional({ example: '北京协和医院' })
+  @IsOptional()
+  @IsString()
+  hospital?: string
+
+  @ApiPropertyOptional({ example: '内分泌科' })
+  @IsOptional()
+  @IsString()
+  department?: string
+
+  @ApiPropertyOptional({ example: 'CHIEF' })
+  @IsOptional()
+  @IsString()
+  title?: string
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  specialties?: string
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  bio?: string
+}

@@ -20,8 +20,17 @@
             <div class="msg-bubble" v-if="msg.contentType === 'IMAGE'">
               <img :src="msg.content" class="msg-img" alt="图片" @click="previewImage(msg.content)" />
             </div>
-            <div class="msg-bubble" v-else-if="msg.contentType === 'BLOOD_SUGAR_CARD'">
-              {{ formatBsCardAsText(msg.content) }}
+            <div class="msg-bubble bs-card-bubble" v-else-if="msg.contentType === 'BLOOD_SUGAR_CARD'">
+              <div class="bs-card-label">📊 血糖记录分享</div>
+              <div class="bs-card-body">
+                <div>
+                  <div class="bs-card-time">{{ parseBsCard(msg.content)?.time || '' }}</div>
+                  <div :class="['bs-card-value', 'bs-color-' + getBsLevelClass(parseBsCard(msg.content)?.value || 0)]">
+                    {{ parseBsCard(msg.content)?.value }}
+                    <span class="bs-card-unit">mmol/L</span>
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="msg-bubble" v-else>{{ msg.content }}</div>
             <div class="msg-meta">
@@ -60,7 +69,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { showFailToast, showImagePreview } from 'vant'
 import { useUserStore } from '@/stores/user'
 import { useChatStore } from '@/stores/chat'
-import { getMessages, sendMessage, markRead, getConversations } from '@/api/chat'
+import { getMessages, sendMessage, markRead, getConversations, uploadImage } from '@/api/chat'
 import { getPatientHealthData } from '@/api/patients'
 import { useNewMessage } from '@/api/socket'
 import { MEASURE_TIME_LABELS } from '@leimengyun/shared'
@@ -136,6 +145,12 @@ function parseBsCard(content: string): { value: number; time: string } | null {
   } catch { /* ignore */ }
   return null
 }
+function getBsLevelClass(value: number): string {
+  if (value < 3.9) return 'low'
+  if (value <= 7.8) return 'normal'
+  if (value <= 11.1) return 'high'
+  return 'danger'
+}
 
 function previewImage(url: string) {
   showImagePreview([url])
@@ -154,7 +169,8 @@ async function onImageSelect(file: { file: File; content?: string } | { file: Fi
   messages.value.push(tempMsg)
   await scrollToBottom()
   try {
-    const realMsg = await sendMessage(conversationId, dataUrl, 'IMAGE')
+    const imageUrl = await uploadImage(f.file)
+    const realMsg = await sendMessage(conversationId, imageUrl, 'IMAGE')
     const idx = messages.value.findIndex((m) => m.id === tempId)
     if (idx >= 0) messages.value[idx] = { ...realMsg, _pending: false }
   } catch (err: any) {
@@ -337,4 +353,18 @@ onDeactivated(() => chatStore.refreshUnreadCount())
 .chat-input-bar { border-top: 1px solid #ebedf0; background: #fff; }
 .input-icon { padding: 0 4px; color: #646566; }
 .msg-img { max-width: 200px; max-height: 200px; border-radius: 8px; display: block; cursor: pointer; }
+.bs-card-bubble {
+  background: linear-gradient(135deg, #e8f8f0, #fff);
+  border: 1px solid #d0ead9;
+  min-width: 160px;
+}
+.bs-card-label { font-size: 12px; color: #1aad6e; font-weight: 500; margin-bottom: 6px; }
+.bs-card-body { display: flex; justify-content: space-between; align-items: center; }
+.bs-card-time { font-size: 11px; color: #969799; margin-bottom: 2px; }
+.bs-card-value { font-size: 24px; font-weight: 700; }
+.bs-card-unit { font-size: 12px; font-weight: 400; }
+.bs-color-low { color: #3b82f6; }
+.bs-color-normal { color: #1aad6e; }
+.bs-color-high { color: #ffb020; }
+.bs-color-danger { color: #ff4d4f; }
 </style>

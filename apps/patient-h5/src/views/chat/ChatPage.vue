@@ -10,8 +10,17 @@
             <div class="msg-bubble" v-if="msg.contentType === 'IMAGE'">
               <img :src="msg.content" class="msg-img" alt="图片" @click="previewImage(msg.content)" />
             </div>
-            <div class="msg-bubble" v-else-if="msg.contentType === 'BLOOD_SUGAR_CARD'">
-              {{ formatBsCardAsText(msg.content) }}
+            <div class="msg-bubble bs-card-bubble" v-else-if="msg.contentType === 'BLOOD_SUGAR_CARD'">
+              <div class="bs-card-label">📊 血糖记录分享</div>
+              <div class="bs-card-body">
+                <div>
+                  <div class="bs-card-time">{{ parseBsCard(msg.content)?.time || '' }}</div>
+                  <div :class="['bs-card-value', 'bs-' + getBsLevelClass(parseBsCard(msg.content)?.value || 0)]">
+                    {{ parseBsCard(msg.content)?.value }}
+                    <span class="bs-card-unit">mmol/L</span>
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="msg-bubble" v-else>{{ msg.content }}</div>
             <div class="msg-meta">
@@ -32,14 +41,15 @@
         <template #left-icon>
           <div class="input-actions">
             <van-uploader
-            :after-read="onImageSelect"
-            accept="image/*"
-            :max-size="5 * 1024 * 1024"
-            :show-upload="false"
-            result-type="dataUrl"
-          >
+              :after-read="onImageSelect"
+              accept="image/*"
+              :max-size="5 * 1024 * 1024"
+              :show-upload="false"
+              result-type="dataUrl"
+            >
               <van-icon name="photograph" size="22" class="input-icon" />
             </van-uploader>
+            <van-icon name="bar-chart-o" size="22" class="input-icon" @click="openBsShare" />
           </div>
         </template>
         <template #button>
@@ -54,6 +64,33 @@
         </template>
       </van-field>
     </div>
+
+    <!-- Blood Sugar Share Sheet -->
+    <van-popup v-model:show="showBsSheet" position="bottom" round style="max-height: 60vh; overflow-y: auto;">
+      <div class="bs-sheet-header">
+        <span class="bs-sheet-title">分享血糖记录</span>
+        <van-icon name="cross" class="bs-sheet-close" @click="showBsSheet = false" />
+      </div>
+      <van-loading v-if="bsLoading" class="bs-loading" />
+      <van-empty v-else-if="!recentBs.length" description="暂无血糖记录" image="search" />
+      <div v-else class="bs-list">
+        <div
+          v-for="bs in recentBs"
+          :key="bs.id"
+          class="bs-item"
+          @click="shareBsCard(bs)"
+        >
+          <div class="bs-item-left">
+            <span class="bs-item-label">{{ bs.measureTimeLabel }}</span>
+            <span class="bs-item-time">{{ bs.timeStr }}</span>
+          </div>
+          <div class="bs-item-right">
+            <span :class="['bs-val', 'bs-' + bs.levelClass]">{{ bs.value }}</span>
+            <span class="bs-unit">mmol/L</span>
+          </div>
+        </div>
+      </div>
+    </van-popup>
   </div>
 </template>
 
@@ -63,8 +100,10 @@ import { useRoute } from 'vue-router'
 import { showFailToast, showImagePreview } from 'vant'
 import { useUserStore } from '@/stores/user'
 import { useChatStore } from '@/stores/chat'
-import { getMessages, sendMessage, markRead, getConversations } from '@/api/chat'
+import { getMessages, sendMessage, markRead, getConversations, uploadImage } from '@/api/chat'
+import { getBloodSugars } from '@/api/health'
 import { useNewMessage } from '@/api/socket'
+import { MEASURE_TIME_LABELS } from '@leimengyun/shared'
 
 const route = useRoute()
 const userStore = useUserStore()
@@ -76,6 +115,9 @@ const inputMsg = ref('')
 const messages = ref<any[]>([])
 const chatBody = ref<HTMLElement>()
 const loading = ref(true)
+const showBsSheet = ref(false)
+const bsLoading = ref(false)
+const recentBs = ref<any[]>([])
 
 function formatMsgTime(dateStr: string) {
   const d = new Date(dateStr)
@@ -129,7 +171,8 @@ async function onImageSelect(file: any) {
   messages.value.push(tempMsg)
   await scrollToBottom()
   try {
-    const realMsg = await sendMessage(conversationId, dataUrl, 'IMAGE')
+    const imageUrl = await uploadImage(f.file)
+    const realMsg = await sendMessage(conversationId, imageUrl, 'IMAGE')
     const idx = messages.value.findIndex((m) => m.id === tempId)
     if (idx >= 0) messages.value[idx] = { ...realMsg, _pending: false }
   } catch (err: any) {
@@ -203,6 +246,69 @@ async function handleSend() {
 
   try {
     const realMsg = await sendMessage(conversationId, text)
+    const idx = messages.value.findIndex((m) => m.id === tempId)
+    if (idx >= 0) messages.value[idx] = { ...realMsg, _pending: false }
+  } catch (err: any) {
+    const idx = messages.value.findIndex((m) => m.id === tempId)
+    if (idx >= 0) messages.value.splice(idx, 1)
+    showFailToast(err.response?.data?.message || '发送失败')
+  }
+}
+
+function getBsLevelClass(value: number): string {
+  if (value < 3.9) return 'low'
+  if (value <= 7.8) return 'normal'
+  if (value <= 11.1) return 'high'
+  return 'danger'
+}
+
+async function openBsShare() {
+  showBsSheet.value = true
+  if (recentBs.value.length) return
+  bsLoading.value = true
+  try {
+    const records = (await getBloodSugars(7)) as any[]
+    recentBs.value = records.slice(0, 10).map((r: any) => {
+      const d = new Date(r.recordedAt)
+      return {
+        id: r.id,
+        value: r.value,
+        measureTime: r.measureTime,
+        measureTimeLabel: MEASURE_TIME_LABELS[r.measureTime] || r.measureTime,
+        recordedAt: r.recordedAt,
+        timeStr: `${d.getMonth() + 1}/${d.getDate()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`,
+        levelClass: getBsLevelClass(r.value),
+      }
+    })
+  } catch {
+    /* ignore */
+  } finally {
+    bsLoading.value = false
+  }
+}
+
+async function shareBsCard(bs: any) {
+  showBsSheet.value = false
+  const cardContent = JSON.stringify({
+    value: bs.value,
+    measureTime: bs.measureTime,
+    time: bs.measureTimeLabel + ' ' + bs.timeStr,
+    recordedAt: bs.recordedAt,
+  })
+  const tempId = `temp-bs-${Date.now()}`
+  const tempMsg = {
+    id: tempId,
+    senderId: myUserId.value,
+    contentType: 'BLOOD_SUGAR_CARD',
+    content: cardContent,
+    isRead: false,
+    createdAt: new Date().toISOString(),
+    _pending: true,
+  }
+  messages.value.push(tempMsg)
+  await scrollToBottom()
+  try {
+    const realMsg = await sendMessage(conversationId, cardContent, 'BLOOD_SUGAR_CARD')
     const idx = messages.value.findIndex((m) => m.id === tempId)
     if (idx >= 0) messages.value[idx] = { ...realMsg, _pending: false }
   } catch (err: any) {
@@ -339,5 +445,100 @@ onDeactivated(() => {
   border-radius: 8px;
   display: block;
   cursor: pointer;
+}
+.bs-card-bubble {
+  background: linear-gradient(135deg, #e8f8f0, #fff);
+  border: 1px solid #d0ead9;
+  min-width: 160px;
+}
+.bs-card-label {
+  font-size: 12px;
+  color: #1aad6e;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+.bs-card-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.bs-card-time {
+  font-size: 11px;
+  color: #969799;
+  margin-bottom: 2px;
+}
+.bs-card-value {
+  font-size: 24px;
+  font-weight: 700;
+}
+.bs-card-unit {
+  font-size: 12px;
+  font-weight: 400;
+}
+.bs-low { color: #3b82f6; }
+.bs-normal { color: #1aad6e; }
+.bs-high { color: #ffb020; }
+.bs-danger { color: #ff4d4f; }
+.bs-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid #ebedf0;
+}
+.bs-sheet-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #323233;
+}
+.bs-sheet-close {
+  font-size: 18px;
+  color: #969799;
+  cursor: pointer;
+}
+.bs-loading {
+  display: flex;
+  justify-content: center;
+  padding: 32px;
+}
+.bs-list {
+  padding: 8px 0;
+}
+.bs-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid #ebedf0;
+  cursor: pointer;
+}
+.bs-item:last-child { border-bottom: none; }
+.bs-item:active { background: #f7f8fa; }
+.bs-item-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.bs-item-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #323233;
+}
+.bs-item-time {
+  font-size: 12px;
+  color: #969799;
+}
+.bs-item-right {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.bs-val {
+  font-size: 22px;
+  font-weight: 700;
+}
+.bs-unit {
+  font-size: 12px;
+  color: #969799;
 }
 </style>

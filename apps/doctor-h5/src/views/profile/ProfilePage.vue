@@ -9,7 +9,7 @@
       </div>
     </div>
     <van-cell-group inset style="margin-top: -12px">
-      <van-cell title="专业信息" icon="description" is-link />
+      <van-cell title="专业信息" icon="description" is-link to="/doctor-info" />
       <van-cell title="工作统计" icon="chart-trending-o" is-link :value="'管理' + patientCount + '位患者'" />
       <van-cell title="通知设置" icon="bell" is-link />
     </van-cell-group>

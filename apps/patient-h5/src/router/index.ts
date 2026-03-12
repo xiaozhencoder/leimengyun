@@ -66,6 +66,23 @@ const routes = [
     component: () => import('@/views/profile/BindDoctorPage.vue'),
     meta: { auth: true },
   },
+  {
+    path: '/health-profile',
+    name: 'HealthProfile',
+    component: () => import('@/views/profile/HealthProfilePage.vue'),
+    meta: { auth: true },
+  },
+  {
+    path: '/health-profile/edit',
+    name: 'HealthProfileEdit',
+    component: () => import('@/views/profile/HealthProfileEditPage.vue'),
+    meta: { auth: true },
+  },
+  {
+    path: '/role-select',
+    name: 'RoleSelect',
+    component: () => import('@/views/auth/RoleSelectPage.vue'),
+  },
 ]
 
 const router = createRouter({
@@ -85,9 +102,11 @@ router.beforeEach(async (to, _from, next) => {
   }
 
   if (to.meta.auth && userStore.isLoggedIn && !userStore.userInfo) {
-    await userStore.fetchUser()
+    const userData = await userStore.fetchUser()
     if (!userStore.isLoggedIn) return next('/login')
-    if (!userStore.hasProfile && to.name !== 'Register') return next('/register')
+    // 用接口返回数据判断，避免 store 未及时更新导致误判为未完善档案
+    const hasProfile = !!(userData as any)?.patientProfile
+    if (!hasProfile && to.name !== 'Register' && to.name !== 'RoleSelect') return next('/register')
   }
 
   next()

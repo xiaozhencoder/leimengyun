@@ -35,6 +35,12 @@ const routes = [
     component: () => import('@/views/chat/ChatPage.vue'),
     meta: { auth: true },
   },
+  {
+    path: '/doctor-info',
+    name: 'DoctorInfo',
+    component: () => import('@/views/profile/DoctorInfoPage.vue'),
+    meta: { auth: true },
+  },
 ]
 
 const router = createRouter({
@@ -49,9 +55,10 @@ router.beforeEach(async (to, _from, next) => {
   if (to.meta.guest && userStore.isLoggedIn) return next('/')
 
   if (to.meta.auth && userStore.isLoggedIn && !userStore.userInfo) {
-    await userStore.fetchUser()
+    const userData = await userStore.fetchUser()
     if (!userStore.isLoggedIn) return next('/login')
-    if (!userStore.hasProfile && to.name !== 'Register') return next('/register')
+    const hasProfile = !!(userData as any)?.doctorProfile
+    if (!hasProfile && to.name !== 'Register') return next('/register')
   }
 
   next()

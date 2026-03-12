@@ -80,7 +80,18 @@ async function onSubmit() {
 
     const userData = await userStore.fetchUser()
 
-    if (result.isNewUser || !userData?.patientProfile) {
+    // getMe 失败时（如网络/401）fetchUser 会 logout 并返回 null，不应跳转注册页
+    if (userData == null) {
+      showFailToast('登录失败，请重试')
+      return
+    }
+
+    // 用接口返回的 userData 判断，避免 store 未及时更新导致误判
+    const hasProfile = !!(userData as any)?.patientProfile
+    if (result.isNewUser) {
+      router.push('/role-select')
+    } else if (!hasProfile) {
+      showToast('请完善健康信息')
       router.push('/register')
     } else {
       router.push('/')

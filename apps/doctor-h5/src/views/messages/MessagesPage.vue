@@ -17,7 +17,7 @@
           </div>
           <div class="msg-body">
             <div class="msg-name">{{ conv.otherName }}</div>
-            <div class="msg-preview">{{ conv.lastMessage || '暂无消息' }}</div>
+            <div class="msg-preview">{{ formatPreview(conv) }}</div>
           </div>
           <span class="msg-time">{{ formatTime(conv.lastMessageAt) }}</span>
         </div>
@@ -36,6 +36,13 @@ import { useConversationUpdate, useNewMessage } from '@/api/socket'
 const conversations = ref<any[]>([])
 const chatStore = useChatStore()
 const refreshing = ref(false)
+
+function formatPreview(conv: { lastMessage?: string; lastMessageType?: string }) {
+  const type = conv.lastMessageType || 'TEXT'
+  if (type === 'IMAGE') return '[图片]'
+  if (type === 'BLOOD_SUGAR_CARD') return '[血糖记录]'
+  return conv.lastMessage || '暂无消息'
+}
 
 function formatTime(dateStr: string) {
   if (!dateStr) return ''

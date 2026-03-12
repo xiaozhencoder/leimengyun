@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { showFailToast } from 'vant'
 
 const client = axios.create({
   baseURL: '/api',
@@ -19,6 +20,10 @@ client.interceptors.response.use(
     if (err.response?.status === 401) {
       localStorage.removeItem('token')
       window.location.href = '/login'
+      return Promise.reject(err)
+    }
+    if (!err.response) {
+      showFailToast('网络连接失败，请稍后重试')
     }
     return Promise.reject(err)
   },

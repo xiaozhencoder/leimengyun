@@ -19,3 +19,12 @@ export function sendMessage(
 export function markRead(conversationId: string) {
   return client.put(`/chat/conversations/${conversationId}/read`)
 }
+
+export async function uploadImage(file: File): Promise<string> {
+  const formData = new FormData()
+  formData.append('file', file)
+  const res = await client.post('/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }) as any
+  return res.url as string
+}

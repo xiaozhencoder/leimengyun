@@ -59,12 +59,13 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { showError, showSuccess } from '@/utils/feedback'
 import { createDiet } from '@/api/health'
+import { uploadImage } from '@/api/chat'
 
 const router = useRouter()
 const saving = ref(false)
 const mealType = ref('LUNCH')
 const note = ref('')
-const photoFileList = ref<Array<{ content?: string }>>([])
+const photoFileList = ref<Array<{ file?: File; content?: string }>>([])
 
 const foodItems = ref([
   { name: '', quantity: '', carbs: 0 },
@@ -85,12 +86,16 @@ async function onSave() {
   if (!items.length) { showError('请至少添加一项食物'); return }
   saving.value = true
   try {
-    const photo = photoFileList.value[0]?.content
+    let photoUrl: string | undefined
+    const photoItem = photoFileList.value[0]
+    if (photoItem?.file) {
+      photoUrl = await uploadImage(photoItem.file)
+    }
     await createDiet({
       mealType: mealType.value,
       foodItems: items,
       totalCarbs: totalCarbs.value,
-      photoUrl: photo || undefined,
+      photoUrl,
       recordedAt: new Date().toISOString(),
       note: note.value || undefined,
     })
