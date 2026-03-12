@@ -224,8 +224,8 @@ onMounted(async () => {
       getMedications(7),
     ])
     summary.value = s as any
-    const bs = (bsList as any[]) || []
-    todayBloodSugars.value = ((bsToday as any[]) || []).map((r) => ({ recordedAt: r.recordedAt, value: r.value }))
+    const bs = (bsList as unknown as any[]) || []
+    todayBloodSugars.value = ((bsToday as unknown as any[]) || []).map((r) => ({ recordedAt: r.recordedAt, value: r.value }))
 
     const INJECTION_SITE_LABELS: Record<string, string> = {
       ABDOMEN: '腹部',
@@ -244,7 +244,7 @@ onMounted(async () => {
         value: r.value,
       })
     }
-    for (const r of (dietList as any[]) || []) {
+    for (const r of (dietList as unknown as any[]) || []) {
       const meal = MEAL_TYPE_LABELS[r.mealType] || r.mealType
       const items = r.foodItems
       let foodStr = ''
@@ -263,7 +263,7 @@ onMounted(async () => {
       })
     }
     const titleSep = ' ' + SEP + ' '
-    for (const r of (medList as any[]) || []) {
+    for (const r of (medList as unknown as any[]) || []) {
       const meta = r.injectionSite
         ? formatRecordMeta(r.recordedAt, INJECTION_SITE_LABELS[r.injectionSite] || r.injectionSite)
         : formatRecordMeta(r.recordedAt)

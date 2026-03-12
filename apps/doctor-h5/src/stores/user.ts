@@ -15,6 +15,10 @@ export const useUserStore = defineStore('user', () => {
     localStorage.setItem('doc_token', t)
   }
 
+  function setUserInfo(data: any) {
+    userInfo.value = data
+  }
+
   async function fetchUser() {
     try {
       const data = await getMe()
@@ -32,5 +36,5 @@ export const useUserStore = defineStore('user', () => {
     localStorage.removeItem('doc_token')
   }
 
-  return { token, userInfo, isLoggedIn, hasProfile, profile, setToken, fetchUser, logout }
+  return { token, userInfo, isLoggedIn, hasProfile, profile, setToken, setUserInfo, fetchUser, logout }
 })

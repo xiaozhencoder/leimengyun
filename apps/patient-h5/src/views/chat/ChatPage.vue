@@ -208,7 +208,7 @@ async function scrollToBottom() {
 async function loadMessages() {
   loading.value = true
   try {
-    messages.value = (await getMessages(conversationId)) as any[]
+    messages.value = (await getMessages(conversationId)) as unknown as any[]
     await markRead(conversationId)
     await scrollToBottom()
   } catch {
@@ -220,7 +220,7 @@ async function loadMessages() {
 
 async function loadConvInfo() {
   try {
-    const convs = (await getConversations()) as any[]
+    const convs = (await getConversations()) as unknown as any[]
     const conv = convs.find((c: any) => c.id === conversationId)
     if (conv) chatTitle.value = conv.otherName
   } catch {
@@ -269,7 +269,7 @@ async function openBsShare() {
   if (recentBs.value.length) return
   bsLoading.value = true
   try {
-    const records = (await getBloodSugars(7)) as any[]
+    const records = (await getBloodSugars(7)) as unknown as any[]
     recentBs.value = records.slice(0, 10).map((r: any) => {
       const d = new Date(r.recordedAt)
       return {

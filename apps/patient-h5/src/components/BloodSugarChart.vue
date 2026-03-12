@@ -65,10 +65,10 @@ function initChart() {
     itemStyle: { color: getPointColor(val) },
     label: {
       show: true,
-      position: 'top',
+      position: 'top' as const,
       formatter: () => Number(val).toFixed(1),
       fontSize: 11,
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
       color: getPointColor(val),
     },
   }))

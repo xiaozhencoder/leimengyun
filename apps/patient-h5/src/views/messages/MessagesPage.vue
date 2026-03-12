@@ -74,7 +74,7 @@ function tagColorClass(tag: string) {
 async function loadConversations() {
   refreshing.value = true
   try {
-    const list = (await getConversations()) as any[]
+    const list = (await getConversations()) as unknown as any[]
     conversations.value = list
     chatStore.setTotalFromConversations(list)
   } catch {

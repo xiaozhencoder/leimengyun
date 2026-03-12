@@ -101,7 +101,8 @@ async function handleLogin() {
   try {
     // Mock login for now
     userStore.setToken('mock-doctor-token')
-    userStore.setDoctor({
+    userStore.setUserInfo({
+  doctorProfile: {
       id: 'doc-1',
       phone: phone.value,
       realName: '李明华',
@@ -112,7 +113,8 @@ async function handleLogin() {
       specialties: '1型糖尿病、胰岛素泵管理',
       bio: '从事内分泌科临床工作15年',
       verifyStatus: 'APPROVED',
-    })
+  },
+})
     const redirect = (router.currentRoute.value.query.redirect as string) || '/patients'
     router.push(redirect)
   } finally {

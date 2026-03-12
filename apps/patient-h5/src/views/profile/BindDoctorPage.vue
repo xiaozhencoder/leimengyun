@@ -63,13 +63,13 @@ const sectionTitle = computed(() => {
 async function loadDoctors() {
   loading.value = true
   try {
-    doctors.value = (await searchDoctors(keyword.value || undefined)) as any[]
+    doctors.value = (await searchDoctors(keyword.value || undefined)) as unknown as any[]
   } catch { doctors.value = [] }
   finally { loading.value = false }
 }
 
 async function loadMyDoctors() {
-  try { myDoctors.value = (await getMyDoctors()) as any[] } catch { myDoctors.value = [] }
+  try { myDoctors.value = (await getMyDoctors()) as unknown as any[] } catch { myDoctors.value = [] }
 }
 
 async function handleBind(doctorUserId: string) {

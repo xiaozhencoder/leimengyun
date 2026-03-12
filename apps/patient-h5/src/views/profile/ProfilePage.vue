@@ -41,7 +41,7 @@ function handleLogout() { userStore.logout(); router.push('/login') }
 
 onMounted(async () => {
   try {
-    const docs = (await getMyDoctors()) as any[]
+    const docs = (await getMyDoctors()) as unknown as any[]
     doctorCount.value = docs.length
   } catch { /* ignore */ }
 })

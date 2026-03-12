@@ -82,8 +82,8 @@ const rejectTarget = ref<(PendingDoctorItem & { _rejecting?: boolean }) | null>(
 async function loadList() {
   if (!refreshing.value) loading.value = true
   try {
-    const res = await getPendingDoctors(1, 50)
-    list.value = (res.list || []).map((d) => ({ ...d, _approving: false, _rejecting: false }))
+    const res = (await getPendingDoctors(1, 50)) as unknown as { list: PendingDoctorItem[] }
+    list.value = (res.list || []).map((d: PendingDoctorItem) => ({ ...d, _approving: false, _rejecting: false }))
   } catch (e: any) {
     showFailToast(e.response?.data?.message || '加载失败')
   } finally {
