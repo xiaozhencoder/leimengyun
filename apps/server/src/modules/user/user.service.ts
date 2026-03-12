@@ -12,7 +12,8 @@ export class UserService {
       include: { patientProfile: true, doctorProfile: true },
     })
     if (!user) throw new NotFoundException('用户不存在')
-    return user
+    const { passwordHash: _, ...safe } = user
+    return safe
   }
 
   async createPatientProfile(userId: string, dto: CreatePatientProfileDto) {

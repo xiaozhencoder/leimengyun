@@ -1,6 +1,6 @@
 <template>
   <div class="register-page">
-    <van-nav-bar title="完善健康信息" />
+    <van-nav-bar title="完善健康信息" left-arrow @click-left="handleUseOtherAccount" />
     <div class="form-section">
       <p class="form-tip">请填写您的基本健康信息，以便提供更好的管理服务</p>
       <van-form @submit="onSubmit">
@@ -44,6 +44,7 @@
           <van-button round block type="primary" native-type="submit" :loading="loading">
             完成注册
           </van-button>
+          <p class="switch-account" @click="handleUseOtherAccount">使用其他账号登录</p>
         </div>
       </van-form>
     </div>
@@ -137,6 +138,11 @@ function onDiagDateConfirm({ selectedValues }: { selectedValues: string[] }) {
   showDiagDate.value = false
 }
 
+function handleUseOtherAccount() {
+  userStore.logout()
+  router.replace('/login')
+}
+
 async function onSubmit() {
   if (!form.value.nickname || !form.value.birthDate) {
     showFailToast('请填写必要信息')
@@ -169,5 +175,12 @@ async function onSubmit() {
   padding: 16px;
   font-size: 14px;
   color: #646566;
+}
+.switch-account {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 14px;
+  color: #1aad6e;
+  cursor: pointer;
 }
 </style>

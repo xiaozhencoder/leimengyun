@@ -1,6 +1,6 @@
 <template>
   <div class="register-page">
-    <van-nav-bar title="完善医生信息" />
+    <van-nav-bar title="完善医生信息" left-arrow @click-left="handleUseOtherAccount" />
     <div class="form-section">
       <p class="form-tip">请填写您的专业信息，提交后需管理员审核</p>
       <van-form @submit="onSubmit">
@@ -17,6 +17,7 @@
         </van-cell-group>
         <div style="padding: 24px 16px">
           <van-button round block type="primary" native-type="submit" :loading="loading">提交审核</van-button>
+          <p class="switch-account" @click="handleUseOtherAccount">使用其他账号登录</p>
         </div>
       </van-form>
     </div>
@@ -49,6 +50,11 @@ const titleActions = [
 const titleLabel = computed(() => titleActions.find((a) => a.value === form.value.title)?.name || '请选择')
 function onTitleSelect(a: any) { form.value.title = a.value; showTitle.value = false }
 
+function handleUseOtherAccount() {
+  userStore.logout()
+  router.replace('/login')
+}
+
 async function onSubmit() {
   loading.value = true
   try {
@@ -71,4 +77,5 @@ async function onSubmit() {
 <style scoped>
 .register-page { min-height: 100vh; background: #f7f8fa; }
 .form-tip { padding: 16px; font-size: 14px; color: #646566; }
+.switch-account { margin-top: 16px; text-align: center; font-size: 14px; color: #3B82F6; cursor: pointer; }
 </style>
