@@ -29,3 +29,6 @@
 - **Admin account**: To create an admin, set a user's role to `ADMIN` in the database, e.g. `UPDATE users SET role = 'ADMIN' WHERE phone = '13800138000';` — then log in with that phone in the doctor H5 app to access 「审核医生」.
 - **All services** can be started simultaneously with `pnpm dev` from the workspace root.
 - **Frontend proxy**: Both Vue3 apps proxy `/api` requests to `localhost:3000` via Vite config.
+- **Server .env file**: Must exist at `apps/server/.env` (copy from `.env.example` at the repo root if missing). The update script handles this automatically.
+- **Docker in Cloud Agent VMs**: Requires `fuse-overlayfs` storage driver and `iptables-legacy`. See the Docker setup steps in the update script / VM snapshot for details.
+- **Enum values for patient profile**: `diabetesType` must be one of `TYPE_1`, `TYPE_2`, `GESTATIONAL`, `OTHER`; `treatmentPlan` must be one of `CSII`, `MDI`, `ORAL`, `LIFESTYLE` (defined in `apps/server/prisma/schema.prisma`).
