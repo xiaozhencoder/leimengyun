@@ -25,6 +25,24 @@ export class CommunityController {
     return this.communityService.seedTopics()
   }
 
+  @Get('search')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '搜索帖子/话题/用户' })
+  async search(
+    @Request() req,
+    @Query('keyword') keyword: string,
+    @Query('type') type?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    if (!keyword?.trim()) return { type: type || 'post', list: [], total: 0 }
+    return this.communityService.search(
+      req.user.id, keyword.trim(), type || 'post',
+      parseInt(page || '1'), parseInt(pageSize || '20'),
+    )
+  }
+
   @Get('posts')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

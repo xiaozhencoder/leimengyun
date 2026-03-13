@@ -8,6 +8,18 @@ import { QueryPostDto } from './dto/query-post.dto'
 export class CommunityService {
   constructor(private prisma: PrismaService) {}
 
+  private readonly SENSITIVE_WORDS = [
+    '广告', '代购', '加微信', '加QQ', '免费领', '点击链接',
+    '赌博', '彩票', '刷单', '兼职日赚',
+  ]
+
+  private checkSensitiveWords(content: string): string | null {
+    for (const word of this.SENSITIVE_WORDS) {
+      if (content.includes(word)) return word
+    }
+    return null
+  }
+
   async getTopics() {
     return this.prisma.topic.findMany({
       orderBy: [{ isHot: 'desc' }, { sortOrder: 'asc' }, { postCount: 'desc' }],
@@ -209,6 +221,11 @@ export class CommunityService {
       if (!doctor || doctor.verifyStatus !== 'APPROVED') {
         throw new ForbiddenException('仅认证医生可发布科普文章')
       }
+    }
+
+    const sensitiveWord = this.checkSensitiveWords(dto.content + (dto.title || ''))
+    if (sensitiveWord) {
+      throw new BadRequestException(`内容包含违规信息，请修改后重试`)
     }
 
     if (dto.topicId) {
@@ -524,6 +541,11 @@ export class CommunityService {
     const post = await this.prisma.post.findUnique({ where: { id: postId } })
     if (!post || post.status !== 'PUBLISHED') throw new NotFoundException('帖子不存在')
 
+    const sensitiveWord = this.checkSensitiveWords(dto.content)
+    if (sensitiveWord) {
+      throw new BadRequestException(`评论包含违规信息，请修改后重试`)
+    }
+
     if (dto.parentId) {
       const parent = await this.prisma.comment.findUnique({ where: { id: dto.parentId } })
       if (!parent || parent.postId !== postId) throw new NotFoundException('父评论不存在')
@@ -794,5 +816,111 @@ export class CommunityService {
     }
 
     return result.reverse()
+  }
+
+  async search(userId: string, keyword: string, type: string = 'post', page = 1, pageSize = 20) {
+    const skip = (page - 1) * pageSize
+
+    if (type === 'topic') {
+      const topics = await this.prisma.topic.findMany({
+        where: { name: { contains: keyword, mode: 'insensitive' } },
+        orderBy: { postCount: 'desc' },
+      })
+      return { type: 'topic', list: topics, total: topics.length }
+    }
+
+    if (type === 'user') {
+      const users = await this.prisma.user.findMany({
+        where: {
+          OR: [
+            { patientProfile: { nickname: { contains: keyword, mode: 'insensitive' } } },
+            { doctorProfile: { realName: { contains: keyword, mode: 'insensitive' } } },
+          ],
+          status: 'ACTIVE',
+        },
+        select: {
+          id: true, avatarUrl: true, role: true,
+          patientProfile: { select: { nickname: true, diabetesType: true } },
+          doctorProfile: { select: { realName: true, department: true, verifyStatus: true } },
+        },
+        take: pageSize,
+        skip,
+      })
+      const list = users.map(u => ({
+        id: u.id,
+        nickname: u.role === 'PATIENT' ? (u.patientProfile?.nickname || '用户') : (u.doctorProfile?.realName || '医生'),
+        avatarUrl: u.avatarUrl,
+        role: u.role,
+        diabetesType: u.role === 'PATIENT' ? u.patientProfile?.diabetesType : null,
+        department: u.role === 'DOCTOR' ? u.doctorProfile?.department : null,
+        verifyStatus: u.role === 'DOCTOR' ? u.doctorProfile?.verifyStatus : null,
+      }))
+      return { type: 'user', list, total: list.length }
+    }
+
+    // Default: search posts
+    const where = {
+      status: 'PUBLISHED' as const,
+      OR: [
+        { content: { contains: keyword, mode: 'insensitive' as const } },
+        { title: { contains: keyword, mode: 'insensitive' as const } },
+      ],
+    }
+    const [posts, total] = await Promise.all([
+      this.prisma.post.findMany({
+        where,
+        include: {
+          author: {
+            select: {
+              id: true, avatarUrl: true, role: true,
+              patientProfile: { select: { nickname: true, diabetesType: true } },
+              doctorProfile: { select: { realName: true, department: true, verifyStatus: true } },
+            },
+          },
+          topic: { select: { id: true, name: true, icon: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip, take: pageSize,
+      }),
+      this.prisma.post.count({ where }),
+    ])
+
+    const postIds = posts.map(p => p.id)
+    const [likedSet, collectedSet] = await Promise.all([
+      this.prisma.postLike.findMany({ where: { userId, postId: { in: postIds } }, select: { postId: true } }),
+      this.prisma.postCollect.findMany({ where: { userId, postId: { in: postIds } }, select: { postId: true } }),
+    ])
+    const likedIds = new Set(likedSet.map(l => l.postId))
+    const collectedIds = new Set(collectedSet.map(c => c.postId))
+
+    const list = posts.map(post => {
+      const isPatient = post.author.role === 'PATIENT'
+      return {
+        id: post.id,
+        author: {
+          id: post.isAnonymous ? null : post.author.id,
+          nickname: post.isAnonymous ? '匿名糖友' : (isPatient ? post.author.patientProfile?.nickname : post.author.doctorProfile?.realName) || '用户',
+          avatarUrl: post.isAnonymous ? null : post.author.avatarUrl,
+          role: post.author.role,
+          diabetesType: isPatient ? post.author.patientProfile?.diabetesType : null,
+          verifyStatus: !isPatient ? post.author.doctorProfile?.verifyStatus : null,
+          isAnonymous: post.isAnonymous,
+        },
+        contentType: post.contentType,
+        title: post.title,
+        content: post.content,
+        images: post.images,
+        topic: post.topic,
+        bloodSugarData: post.bloodSugarData,
+        likeCount: post.likeCount,
+        commentCount: post.commentCount,
+        collectCount: post.collectCount,
+        isLiked: likedIds.has(post.id),
+        isCollected: collectedIds.has(post.id),
+        createdAt: post.createdAt,
+      }
+    })
+
+    return { type: 'post', list, total, hasMore: skip + pageSize < total }
   }
 }

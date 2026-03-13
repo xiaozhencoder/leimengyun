@@ -8,7 +8,8 @@
     "start": "node dist/main",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "seed:community": "npx ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed-community.ts"
   },
   "dependencies": {
     "@leimengyun/shared": "workspace:*",
