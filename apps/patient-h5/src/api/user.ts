@@ -12,6 +12,10 @@ export function getMyDoctors() {
   return client.get('/users/my-doctors')
 }
 
+export function unbindDoctor(bindId: string) {
+  return client.put(`/users/bind/${bindId}/unbind`)
+}
+
 export function updatePatientProfile(data: {
   nickname?: string
   gender?: string

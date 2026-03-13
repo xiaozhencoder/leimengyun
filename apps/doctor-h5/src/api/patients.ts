@@ -16,6 +16,10 @@ export function rejectBind(bindId: string) {
   return client.put(`/users/bind/${bindId}/reject`)
 }
 
+export function unbindPatient(bindId: string) {
+  return client.put(`/users/bind/${bindId}/unbind`)
+}
+
 export function getPatientHealthData(patientUserId: string, days = 7) {
   return client.get(`/users/patient/${patientUserId}/health-data`, { params: { days } })
 }

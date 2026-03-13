@@ -8,6 +8,9 @@
         <template #icon>
           <div class="doc-avatar">{{ d.realName?.[0] || '医' }}</div>
         </template>
+        <template #right-icon>
+          <van-button size="mini" plain type="danger" @click.stop="handleUnbind(d.bindId, d.realName)">解除绑定</van-button>
+        </template>
       </van-cell>
     </van-cell-group>
 
@@ -39,8 +42,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { showSuccessToast, showFailToast } from 'vant'
-import { searchDoctors, bindDoctor, getMyDoctors } from '@/api/user'
+import { showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
+import { searchDoctors, bindDoctor, getMyDoctors, unbindDoctor } from '@/api/user'
 
 const router = useRouter()
 const keyword = ref('')
@@ -81,6 +84,19 @@ async function handleBind(doctorUserId: string) {
   } catch (err: any) {
     showFailToast(err.response?.data?.message || '绑定失败')
   } finally { bindingId.value = '' }
+}
+
+async function handleUnbind(bindId: string, doctorName: string) {
+  try {
+    await showConfirmDialog({ title: '解除绑定', message: `确定解除与${doctorName}的绑定关系吗？` })
+    await unbindDoctor(bindId)
+    showSuccessToast('已解除绑定')
+    await Promise.all([loadDoctors(), loadMyDoctors()])
+  } catch (err: any) {
+    if (err !== 'cancel' && err?.message !== 'cancel') {
+      showFailToast(err.response?.data?.message || '操作失败')
+    }
+  }
 }
 
 function goChat(d: { conversationId?: string | null; bindStatus?: string }) {

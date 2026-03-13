@@ -53,6 +53,18 @@ const routes = [
     component: () => import('@/views/profile/SettingsPage.vue'),
     meta: { auth: true },
   },
+  {
+    path: '/help',
+    name: 'Help',
+    component: () => import('@/views/profile/HelpPage.vue'),
+    meta: { auth: true },
+  },
+  {
+    path: '/about',
+    name: 'About',
+    component: () => import('@/views/profile/AboutPage.vue'),
+    meta: { auth: true },
+  },
 ]
 
 const router = createRouter({

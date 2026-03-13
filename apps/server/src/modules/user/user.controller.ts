@@ -105,6 +105,14 @@ export class UserController {
     return this.userService.rejectBind(bindId)
   }
 
+  @Put('bind/:bindId/unbind')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '解除医患绑定' })
+  async unbindDoctor(@Request() req, @Param('bindId') bindId: string) {
+    return this.userService.unbindDoctor(req.user.id, bindId)
+  }
+
   @Get('patient/:patientUserId/health-data')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

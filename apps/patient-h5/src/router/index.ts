@@ -90,6 +90,18 @@ const routes = [
     meta: { auth: true },
   },
   {
+    path: '/help',
+    name: 'Help',
+    component: () => import('@/views/profile/HelpPage.vue'),
+    meta: { auth: true },
+  },
+  {
+    path: '/about',
+    name: 'About',
+    component: () => import('@/views/profile/AboutPage.vue'),
+    meta: { auth: true },
+  },
+  {
     path: '/health-report',
     name: 'HealthReport',
     component: () => import('@/views/profile/HealthReportPage.vue'),

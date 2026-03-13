@@ -268,6 +268,35 @@ export class UserService {
     return { message: '已拒绝绑定申请' }
   }
 
+  async unbindDoctor(userId: string, bindId: string) {
+    const bind = await this.prisma.doctorPatientBind.findUnique({
+      where: { id: bindId },
+    })
+    if (!bind) throw new NotFoundException('绑定关系不存在')
+    if (bind.patientId !== userId && bind.doctorId !== userId) {
+      throw new ForbiddenException('无权操作')
+    }
+    if (bind.status !== 'ACCEPTED') {
+      throw new BadRequestException('只能解除已绑定的关系')
+    }
+
+    await this.prisma.doctorPatientBind.update({
+      where: { id: bindId },
+      data: { status: 'REMOVED' },
+    })
+
+    await this.prisma.conversation.updateMany({
+      where: {
+        patientId: bind.patientId,
+        doctorId: bind.doctorId,
+        status: 'ACTIVE',
+      },
+      data: { status: 'CLOSED' },
+    })
+
+    return { message: '已解除绑定' }
+  }
+
   async getPatientHealthData(doctorUserId: string, patientUserId: string, days: number) {
     const bind = await this.prisma.doctorPatientBind.findUnique({
       where: { doctorId_patientId: { doctorId: doctorUserId, patientId: patientUserId } },

@@ -24,8 +24,8 @@
     </van-cell-group>
     <van-cell-group inset style="margin-top: 12px">
       <van-cell title="设置" icon="setting-o" is-link to="/settings" />
-      <van-cell title="帮助与反馈" icon="question-o" is-link />
-      <van-cell title="关于雷檬云" icon="info-o" is-link />
+      <van-cell title="帮助与反馈" icon="question-o" is-link to="/help" />
+      <van-cell title="关于雷檬云" icon="info-o" is-link to="/about" />
     </van-cell-group>
     <div style="padding: 20px 16px">
       <van-button block plain type="danger" @click="handleLogout">退出登录</van-button>
