@@ -81,7 +81,7 @@
           </div>
         </div>
       </template>
-      <van-empty v-else description="暂无记录，点击上方按钮开始记录" image="search" />
+      <van-empty v-else description="暂无记录，点击上方按钮开始记录" image="default" />
     </div>
   </div>
 </template>

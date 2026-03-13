@@ -22,7 +22,7 @@
           <span class="msg-time">{{ formatTime(conv.lastMessageAt) }}</span>
         </div>
       </van-cell-group>
-      <van-empty v-else description="暂无消息，患者绑定后即可开始对话" image="search" />
+      <van-empty v-else description="暂无消息，患者绑定后即可开始对话" image="default" />
     </van-pull-refresh>
   </div>
 </template>

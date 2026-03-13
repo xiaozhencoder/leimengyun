@@ -42,7 +42,7 @@
           </div>
         </div>
       </template>
-      <van-empty v-if="!messages.length && !loading" description="发送一条消息开始对话" image="search" />
+      <van-empty v-if="!messages.length && !loading" description="发送一条消息开始对话" image="default" />
     </div>
     <div class="chat-input-bar">
       <van-field
@@ -56,7 +56,7 @@
           <van-uploader
             :after-read="onImageSelect"
             accept="image/*"
-            :max-size="5 * 1024 * 1024"
+            :max-size="10 * 1024 * 1024"
             :show-upload="false"
             result-type="dataUrl"
           >

@@ -32,7 +32,7 @@
           </div>
         </div>
       </template>
-      <van-empty v-if="!messages.length && !loading" description="发送一条消息开始对话" image="search" />
+      <van-empty v-if="!messages.length && !loading" description="发送一条消息开始对话" image="default" />
     </div>
     <div class="chat-input-bar">
       <van-field
@@ -47,7 +47,7 @@
             <van-uploader
               :after-read="onImageSelect"
               accept="image/*"
-              :max-size="5 * 1024 * 1024"
+              :max-size="10 * 1024 * 1024"
               :show-upload="false"
               result-type="dataUrl"
             >
@@ -76,7 +76,7 @@
         <van-icon name="cross" class="bs-sheet-close" @click="showBsSheet = false" />
       </div>
       <van-loading v-if="bsLoading" class="bs-loading" />
-      <van-empty v-else-if="!recentBs.length" description="暂无血糖记录" image="search" />
+      <van-empty v-else-if="!recentBs.length" description="暂无血糖记录" image="default" />
       <div v-else class="bs-list">
         <div
           v-for="bs in recentBs"

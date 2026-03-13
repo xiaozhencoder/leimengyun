@@ -25,7 +25,7 @@
           <span class="msg-time">{{ formatTime(conv.lastMessageAt) }}</span>
         </div>
       </van-cell-group>
-      <van-empty v-else description="暂无消息，绑定医生后即可开始对话" image="search">
+      <van-empty v-else description="暂无消息，绑定医生后即可开始对话" image="default">
         <van-button type="primary" size="small" @click="$router.push('/bind-doctor')">
           去绑定医生
         </van-button>
