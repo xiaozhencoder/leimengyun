@@ -50,7 +50,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { showError, showSuccess } from '@/utils/feedback'
 import { createBloodSugar } from '@/api/health'
-import { MEASURE_TIME_LABELS } from '@leimengyun/shared'
+import { MEASURE_TIME_LABELS, isFastingMeasureTime } from '@leimengyun/shared'
 
 const router = useRouter()
 const valueStr = ref('6.5')
@@ -79,18 +79,30 @@ const value = computed(() => parseFloat(valueStr.value) || 0)
 const levelClass = computed(() => {
   const v = value.value
   if (v < 1) return 'unknown'
+  const fasting = isFastingMeasureTime(selectedTime.value)
   if (v < 3.9) return 'low'
-  if (v <= 6.1) return 'normal'
-  if (v <= 7.8) return 'high'
+  if (fasting) {
+    if (v <= 6.1) return 'normal'
+    if (v <= 7.0) return 'high'
+    return 'veryhigh'
+  }
+  if (v <= 7.8) return 'normal'
+  if (v <= 11.1) return 'high'
   return 'veryhigh'
 })
 
 const levelText = computed(() => {
   const v = value.value
   if (v < 1) return '—'
+  const fasting = isFastingMeasureTime(selectedTime.value)
   if (v < 3.9) return '偏低'
-  if (v <= 6.1) return '正常'
-  if (v <= 7.8) return '偏高'
+  if (fasting) {
+    if (v <= 6.1) return '正常'
+    if (v <= 7.0) return '偏高'
+    return '高'
+  }
+  if (v <= 7.8) return '正常'
+  if (v <= 11.1) return '偏高'
   return '高'
 })
 

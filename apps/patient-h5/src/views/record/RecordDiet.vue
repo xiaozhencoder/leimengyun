@@ -47,10 +47,22 @@
       <van-field v-model="note" label="备注" type="textarea" placeholder="可选" rows="2" maxlength="200" />
     </van-cell-group>
 
+    <van-cell-group inset style="margin-top: 12px">
+      <van-cell title="记录时间" :value="displayTime" is-link @click="showDatePicker = true" />
+    </van-cell-group>
+
     <div style="padding: 24px 16px">
       <van-button round block type="primary" :loading="saving" @click="onSave">保存记录</van-button>
     </div>
 
+    <van-popup v-model:show="showDatePicker" position="bottom">
+      <van-date-picker
+        v-model="dateValues"
+        :max-date="new Date()"
+        @confirm="onDateConfirm"
+        @cancel="showDatePicker = false"
+      />
+    </van-popup>
   </div>
 </template>
 
@@ -66,6 +78,25 @@ const saving = ref(false)
 const mealType = ref('LUNCH')
 const note = ref('')
 const photoFileList = ref<Array<{ file?: File; content?: string }>>([])
+const showDatePicker = ref(false)
+const now = new Date()
+const recordedAt = ref(now.toISOString())
+const dateValues = ref([
+  now.getFullYear().toString(),
+  (now.getMonth() + 1).toString().padStart(2, '0'),
+  now.getDate().toString().padStart(2, '0'),
+])
+
+const displayTime = computed(() => {
+  const d = new Date(recordedAt.value)
+  return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
+})
+
+function onDateConfirm({ selectedValues }: { selectedValues: string[] }) {
+  const d = new Date(`${selectedValues[0]}-${selectedValues[1]}-${selectedValues[2]}T${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}:00`)
+  recordedAt.value = d.toISOString()
+  showDatePicker.value = false
+}
 
 const foodItems = ref([
   { name: '', quantity: '', carbs: 0 },
@@ -96,7 +127,7 @@ async function onSave() {
       foodItems: items,
       totalCarbs: totalCarbs.value,
       photoUrl,
-      recordedAt: new Date().toISOString(),
+      recordedAt: recordedAt.value,
       note: note.value || undefined,
     })
     showSuccess('记录成功')

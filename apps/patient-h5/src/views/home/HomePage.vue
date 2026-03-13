@@ -76,7 +76,7 @@
             <div class="record-title">{{ item.title }}</div>
             <div class="record-meta">{{ item.meta }}</div>
           </div>
-          <div v-if="item.type === 'BS' && item.value != null" class="record-value" :style="{ color: getBsColor(item.value!) }">
+          <div v-if="item.type === 'BS' && item.value != null" class="record-value" :style="{ color: getBsColor(item.value!, item.measureTime) }">
             {{ item.value }}
           </div>
         </div>
@@ -103,6 +103,7 @@ import {
   MEAL_TYPE_LABELS,
   DIABETES_TYPE_LABELS,
   TREATMENT_PLAN_LABELS,
+  isFastingMeasureTime,
 } from '@leimengyun/shared'
 
 interface RecentRecordItem {
@@ -112,6 +113,7 @@ interface RecentRecordItem {
   meta: string
   recordedAt: string
   value?: number
+  measureTime?: string
 }
 
 const userStore = useUserStore()
@@ -206,8 +208,14 @@ function recordIcon(type: 'BS' | 'DIET' | 'MED') {
 function recordIconClass(type: 'BS' | 'DIET' | 'MED') {
   return type === 'BS' ? 'record-icon-bs' : type === 'DIET' ? 'record-icon-diet' : 'record-icon-med'
 }
-function getBsColor(value: number) {
+function getBsColor(value: number, measureTime?: string) {
   if (value < 3.9) return '#3B82F6'
+  const fasting = measureTime ? isFastingMeasureTime(measureTime) : false
+  if (fasting) {
+    if (value <= 6.1) return '#1AAD6E'
+    if (value <= 7.0) return '#FFB020'
+    return '#FF4D4F'
+  }
   if (value <= 7.8) return '#1AAD6E'
   if (value <= 11.1) return '#FFB020'
   return '#FF4D4F'
@@ -242,6 +250,7 @@ onMounted(async () => {
         meta: formatRecordMeta(r.recordedAt),
         recordedAt: r.recordedAt,
         value: r.value,
+        measureTime: r.measureTime,
       })
     }
     for (const r of (dietList as unknown as any[]) || []) {

@@ -26,6 +26,8 @@
             <div class="msg-meta">
               <span class="msg-time">{{ formatMsgTime(msg.createdAt) }}</span>
               <van-loading v-if="msg._pending" size="12px" class="msg-sending" />
+              <span v-else-if="msg.senderId === myUserId && msg.isRead" class="msg-status msg-status--read">已读</span>
+              <span v-else-if="msg.senderId === myUserId" class="msg-status msg-status--sent">已发送</span>
             </div>
           </div>
         </div>
@@ -104,7 +106,7 @@ import { useUserStore } from '@/stores/user'
 import { useChatStore } from '@/stores/chat'
 import { getMessages, sendMessage, markRead, getConversations, uploadImage } from '@/api/chat'
 import { getBloodSugars } from '@/api/health'
-import { useNewMessage } from '@/api/socket'
+import { useNewMessage, useConversationUpdate } from '@/api/socket'
 import { MEASURE_TIME_LABELS } from '@leimengyun/shared'
 
 const route = useRoute()
@@ -331,6 +333,16 @@ useNewMessage((msg: any) => {
   }
 })
 
+useConversationUpdate((data: any) => {
+  if (data.conversationId === conversationId && data.messagesRead) {
+    messages.value.forEach((m) => {
+      if (m.senderId === myUserId.value && !m.isRead) {
+        m.isRead = true
+      }
+    })
+  }
+})
+
 onMounted(async () => {
   myUserId.value = userStore.userInfo?.id || ''
   await loadConvInfo()
@@ -427,6 +439,16 @@ onDeactivated(() => {
 }
 .msg-sending {
   display: inline-flex;
+}
+.msg-status {
+  font-size: 10px;
+  margin-left: 4px;
+}
+.msg-status--read {
+  color: #1aad6e;
+}
+.msg-status--sent {
+  color: #c8c9cc;
 }
 .chat-input-bar {
   border-top: 1px solid #ebedf0;

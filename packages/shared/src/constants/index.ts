@@ -27,6 +27,28 @@ export const MEASURE_TIME_LABELS: Record<string, string> = {
   RANDOM: '随机',
 }
 
+export const FASTING_MEASURE_TIMES = new Set([
+  'FASTING', 'BEFORE_BREAKFAST', 'BEFORE_LUNCH', 'BEFORE_DINNER', 'BEFORE_SLEEP', 'MIDNIGHT',
+])
+
+export function isFastingMeasureTime(measureTime: string): boolean {
+  return FASTING_MEASURE_TIMES.has(measureTime)
+}
+
+export const BLOOD_SUGAR_LEVEL_LABELS: Record<string, string> = {
+  LOW: '偏低',
+  NORMAL: '正常',
+  HIGH: '偏高',
+  VERY_HIGH: '高',
+}
+
+export const BLOOD_SUGAR_LEVEL_COLORS: Record<string, string> = {
+  LOW: '#3B82F6',
+  NORMAL: '#1AAD6E',
+  HIGH: '#FFB020',
+  VERY_HIGH: '#FF4D4F',
+}
+
 export const MEAL_TYPE_LABELS: Record<string, string> = {
   BREAKFAST: '早餐',
   LUNCH: '午餐',
