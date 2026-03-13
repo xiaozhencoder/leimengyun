@@ -1,7 +1,42 @@
 <template>
   <div class="messages-page">
     <van-nav-bar title="消息" class="messages-header" />
-    <van-pull-refresh v-model="refreshing" @refresh="loadConversations">
+    <van-pull-refresh v-model="refreshing" @refresh="loadAll">
+      <!-- 问卷通知 -->
+      <div v-if="pendingAssignments.length" class="questionnaire-notifications">
+        <div
+          v-for="a in pendingAssignments"
+          :key="a.id"
+          class="notif-card"
+          @click="$router.push('/questionnaire/fill/' + a.id)"
+        >
+          <div class="notif-title">📋 新问卷</div>
+          <div class="notif-body">
+            <strong>{{ a.doctorName }}</strong> 邀请您填写「{{ a.templateTitle }}」
+          </div>
+          <div v-if="a.message" class="notif-message">"{{ a.message }}"</div>
+          <div class="notif-footer">
+            <span class="notif-time">{{ a.questionCount }}题 · 约{{ a.estimatedTime }}分钟 · 截止 {{ formatDate(a.deadline) }}</span>
+            <span class="notif-btn">立即填写 ›</span>
+          </div>
+        </div>
+      </div>
+      <div v-if="notedAssignments.length" class="questionnaire-notifications">
+        <div
+          v-for="a in notedAssignments"
+          :key="a.id"
+          class="notif-card notif-result"
+          @click="$router.push('/questionnaire/result/' + a.id)"
+        >
+          <div class="notif-title">📊 问卷结果</div>
+          <div class="notif-body"><strong>{{ a.doctorName }}</strong> 已查看您的「{{ a.templateTitle }}」并添加了批注</div>
+          <div class="notif-footer">
+            <span class="notif-time">得分 {{ a.totalScore }}/{{ a.templateTotalScore }}</span>
+            <span class="notif-btn notif-btn-green">查看批注 ›</span>
+          </div>
+        </div>
+      </div>
+
       <van-cell-group v-if="conversations.length">
         <div
           v-for="(conv, idx) in conversations"
@@ -37,14 +72,23 @@
 <script setup lang="ts">
 import { ref, onMounted, onActivated } from 'vue'
 import { getConversations } from '@/api/chat'
+import { getReceivedAssignments } from '@/api/questionnaire'
 import { useChatStore } from '@/stores/chat'
 import { useConversationUpdate, useNewMessage } from '@/api/socket'
 
 const conversations = ref<any[]>([])
+const pendingAssignments = ref<any[]>([])
+const notedAssignments = ref<any[]>([])
 const chatStore = useChatStore()
 const refreshing = ref(false)
 
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+
+function formatDate(dateStr: string) {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  return `${d.getMonth() + 1}/${d.getDate()}`
+}
 
 function formatTime(dateStr: string) {
   if (!dateStr) return ''
@@ -72,7 +116,6 @@ function tagColorClass(tag: string) {
 }
 
 async function loadConversations() {
-  refreshing.value = true
   try {
     const list = (await getConversations()) as unknown as any[]
     conversations.value = list
@@ -80,9 +123,25 @@ async function loadConversations() {
   } catch {
     conversations.value = []
     chatStore.setTotalFromConversations([])
-  } finally {
-    refreshing.value = false
   }
+}
+
+async function loadQuestionnaireNotifications() {
+  try {
+    const pending = (await getReceivedAssignments({ status: 'PENDING', pageSize: 5 })) as any
+    pendingAssignments.value = pending?.list || []
+    const completed = (await getReceivedAssignments({ status: 'COMPLETED', pageSize: 5 })) as any
+    notedAssignments.value = (completed?.list || []).filter((a: any) => a.hasNote)
+  } catch {
+    pendingAssignments.value = []
+    notedAssignments.value = []
+  }
+}
+
+async function loadAll() {
+  refreshing.value = true
+  await Promise.all([loadConversations(), loadQuestionnaireNotifications()])
+  refreshing.value = false
 }
 
 useNewMessage(() => {
@@ -93,8 +152,8 @@ useConversationUpdate(() => {
   loadConversations()
 })
 
-onMounted(loadConversations)
-onActivated(loadConversations)
+onMounted(loadAll)
+onActivated(loadAll)
 </script>
 
 <style scoped>
@@ -168,4 +227,23 @@ onActivated(loadConversations)
 }
 .msg-preview { font-size: 13px; color: #969799; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .msg-time { font-size: 11px; color: #c8c9cc; flex-shrink: 0; margin-left: 8px; align-self: flex-start; margin-top: 2px; }
+
+.questionnaire-notifications { padding: 8px 12px 0; }
+.notif-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  border-left: 4px solid #3b82f6;
+  cursor: pointer;
+}
+.notif-card.notif-result { border-left-color: #1aad6e; }
+.notif-title { font-size: 14px; font-weight: 600; color: #323233; margin-bottom: 6px; }
+.notif-body { font-size: 13px; color: #646566; line-height: 1.5; margin-bottom: 4px; }
+.notif-message { font-size: 12px; color: #969799; font-style: italic; margin-bottom: 8px; }
+.notif-footer { display: flex; justify-content: space-between; align-items: center; }
+.notif-time { font-size: 11px; color: #c8c9cc; }
+.notif-btn { font-size: 12px; color: #3b82f6; font-weight: 500; }
+.notif-btn-green { color: #1aad6e; }
 </style>
