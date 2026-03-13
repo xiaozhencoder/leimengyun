@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { CommunityService } from './community.service'
 import { CreatePostDto } from './dto/create-post.dto'
+import { CreateCommentDto } from './dto/create-comment.dto'
 import { QueryPostDto } from './dto/query-post.dto'
 
 @ApiTags('社区')
@@ -86,5 +87,77 @@ export class CommunityController {
   @ApiOperation({ summary: '话题详情（含帖子列表）' })
   async getTopicById(@Request() req, @Param('id') id: string, @Query() query: QueryPostDto) {
     return this.communityService.getTopicById(req.user.id, id, query)
+  }
+
+  @Post('posts/:id/like')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '点赞/取消点赞' })
+  async togglePostLike(@Request() req, @Param('id') id: string) {
+    return this.communityService.togglePostLike(req.user.id, id)
+  }
+
+  @Post('posts/:id/collect')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '收藏/取消收藏' })
+  async togglePostCollect(@Request() req, @Param('id') id: string) {
+    return this.communityService.togglePostCollect(req.user.id, id)
+  }
+
+  @Get('posts/:postId/comments')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '帖子评论列表' })
+  async getComments(@Param('postId') postId: string, @Query() query: QueryPostDto) {
+    return this.communityService.getComments(postId, query)
+  }
+
+  @Post('posts/:postId/comments')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '发表评论' })
+  async createComment(@Request() req, @Param('postId') postId: string, @Body() dto: CreateCommentDto) {
+    return this.communityService.createComment(req.user.id, postId, dto)
+  }
+
+  @Delete('comments/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '删除评论' })
+  async deleteComment(@Request() req, @Param('id') id: string) {
+    return this.communityService.deleteComment(req.user.id, id)
+  }
+
+  @Post('comments/:id/like')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '评论点赞/取消' })
+  async toggleCommentLike(@Request() req, @Param('id') id: string) {
+    return this.communityService.toggleCommentLike(req.user.id, id)
+  }
+
+  @Post('users/:id/follow')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '关注/取消关注' })
+  async toggleFollow(@Request() req, @Param('id') id: string) {
+    return this.communityService.toggleFollow(req.user.id, id)
+  }
+
+  @Get('users/:id/profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '用户社区主页' })
+  async getUserProfile(@Request() req, @Param('id') id: string) {
+    return this.communityService.getUserCommunityProfile(req.user.id, id)
+  }
+
+  @Get('users/:id/posts')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '用户帖子列表' })
+  async getUserPosts(@Request() req, @Param('id') id: string, @Query() query: QueryPostDto) {
+    return this.communityService.getUserPosts(req.user.id, id, query)
   }
 }
