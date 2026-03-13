@@ -19,6 +19,7 @@ const routes = [
     meta: { auth: true },
     children: [
       { path: '', name: 'Patients', component: () => import('@/views/patients/PatientsPage.vue') },
+      { path: 'community', name: 'Community', component: () => import('@/views/community/CommunityPage.vue') },
       { path: 'messages', name: 'Messages', component: () => import('@/views/messages/MessagesPage.vue') },
       { path: 'profile', name: 'Profile', component: () => import('@/views/profile/ProfilePage.vue') },
     ],
@@ -63,6 +64,36 @@ const routes = [
     path: '/about',
     name: 'About',
     component: () => import('@/views/profile/AboutPage.vue'),
+    meta: { auth: true },
+  },
+  {
+    path: '/community/post/:id',
+    name: 'PostDetail',
+    component: () => import('@/views/community/PostDetailPage.vue'),
+    meta: { auth: true },
+  },
+  {
+    path: '/community/publish',
+    name: 'PublishArticle',
+    component: () => import('@/views/community/PublishPage.vue'),
+    meta: { auth: true },
+  },
+  {
+    path: '/community/topics',
+    name: 'TopicSquare',
+    component: () => import('@/views/community/TopicSquarePage.vue'),
+    meta: { auth: true },
+  },
+  {
+    path: '/community/topic/:id',
+    name: 'TopicDetail',
+    component: () => import('@/views/community/TopicDetailPage.vue'),
+    meta: { auth: true },
+  },
+  {
+    path: '/community/user/:id',
+    name: 'CommunityUserProfile',
+    component: () => import('@/views/community/UserProfilePage.vue'),
     meta: { auth: true },
   },
 ]

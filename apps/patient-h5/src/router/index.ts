@@ -25,6 +25,11 @@ const routes = [
         component: () => import('@/views/records/RecordsPage.vue'),
       },
       {
+        path: 'community',
+        name: 'Community',
+        component: () => import('@/views/community/CommunityPage.vue'),
+      },
+      {
         path: 'messages',
         name: 'Messages',
         component: () => import('@/views/messages/MessagesPage.vue'),
@@ -105,6 +110,42 @@ const routes = [
     path: '/health-report',
     name: 'HealthReport',
     component: () => import('@/views/profile/HealthReportPage.vue'),
+    meta: { auth: true },
+  },
+  {
+    path: '/community/post/:id',
+    name: 'PostDetail',
+    component: () => import('@/views/community/PostDetailPage.vue'),
+    meta: { auth: true },
+  },
+  {
+    path: '/community/publish',
+    name: 'Publish',
+    component: () => import('@/views/community/PublishPage.vue'),
+    meta: { auth: true },
+  },
+  {
+    path: '/community/topics',
+    name: 'TopicSquare',
+    component: () => import('@/views/community/TopicSquarePage.vue'),
+    meta: { auth: true },
+  },
+  {
+    path: '/community/topic/:id',
+    name: 'TopicDetail',
+    component: () => import('@/views/community/TopicDetailPage.vue'),
+    meta: { auth: true },
+  },
+  {
+    path: '/community/user/:id',
+    name: 'UserProfile',
+    component: () => import('@/views/community/UserProfilePage.vue'),
+    meta: { auth: true },
+  },
+  {
+    path: '/community/my',
+    name: 'MyCommunity',
+    component: () => import('@/views/community/MyCommunityPage.vue'),
     meta: { auth: true },
   },
 ]

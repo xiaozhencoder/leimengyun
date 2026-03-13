@@ -8,6 +8,7 @@ import { ChatModule } from './modules/chat/chat.module'
 import { AdminModule } from './modules/admin/admin.module'
 import { PrismaModule } from './modules/common/prisma.module'
 import { UploadModule } from './modules/upload/upload.module'
+import { CommunityModule } from './modules/community/community.module'
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { UploadModule } from './modules/upload/upload.module'
     ChatModule,
     UploadModule,
     AdminModule,
+    CommunityModule,
   ],
 })
 export class AppModule {}

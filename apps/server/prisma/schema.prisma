@@ -43,6 +43,16 @@ model User {
   conversationsAsPatient Conversation[] @relation("PatientConversations")
   conversationsAsDoctor  Conversation[] @relation("DoctorConversations")
 
+  // 社区关系
+  posts         Post[]
+  comments      Comment[]
+  postLikes     PostLike[]
+  postCollects  PostCollect[]
+  commentLikes  CommentLike[]
+  followers     UserFollow[]   @relation("UserFollowers")
+  followings    UserFollow[]   @relation("UserFollowings")
+  checkIns      CheckIn[]
+
   @@map("users")
 }
 
@@ -261,4 +271,151 @@ model Message {
 
   @@index([conversationId, createdAt])
   @@map("messages")
+}
+
+// ============================================
+// 糖友社区
+// ============================================
+
+enum PostType {
+  NORMAL
+  BLOOD_SUGAR_DIARY
+  DOCTOR_ARTICLE
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  HIDDEN
+  DELETED
+}
+
+model Post {
+  id             String     @id @default(uuid())
+  authorId       String     @map("author_id")
+  contentType    PostType   @default(NORMAL) @map("content_type")
+  title          String?
+  content        String     @db.Text
+  images         String[]   @default([])
+  topicId        String?    @map("topic_id")
+  bloodSugarData Json?      @map("blood_sugar_data")
+  isAnonymous    Boolean    @default(false) @map("is_anonymous")
+  likeCount      Int        @default(0) @map("like_count")
+  commentCount   Int        @default(0) @map("comment_count")
+  collectCount   Int        @default(0) @map("collect_count")
+  status         PostStatus @default(PUBLISHED)
+  isTop          Boolean    @default(false) @map("is_top")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  author   User       @relation(fields: [authorId], references: [id])
+  topic    Topic?     @relation(fields: [topicId], references: [id])
+  comments Comment[]
+  likes    PostLike[]
+  collects PostCollect[]
+
+  @@index([authorId, createdAt])
+  @@index([topicId, createdAt])
+  @@index([status, createdAt])
+  @@map("posts")
+}
+
+model Comment {
+  id            String   @id @default(uuid())
+  postId        String   @map("post_id")
+  authorId      String   @map("author_id")
+  content       String   @db.VarChar(500)
+  parentId      String?  @map("parent_id")
+  replyToUserId String?  @map("reply_to_user_id")
+  likeCount     Int      @default(0) @map("like_count")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  post    Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author  User          @relation(fields: [authorId], references: [id])
+  parent  Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Comment[]     @relation("CommentReplies")
+  likes   CommentLike[]
+
+  @@index([postId, createdAt])
+  @@map("comments")
+}
+
+model Topic {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  icon        String?
+  postCount   Int      @default(0) @map("post_count")
+  isHot       Boolean  @default(false) @map("is_hot")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  posts Post[]
+
+  @@map("topics")
+}
+
+model PostLike {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([postId, userId])
+  @@map("post_likes")
+}
+
+model PostCollect {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([postId, userId])
+  @@map("post_collects")
+}
+
+model CommentLike {
+  id        String   @id @default(uuid())
+  commentId String   @map("comment_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
+  @@map("comment_likes")
+}
+
+model UserFollow {
+  id          String   @id @default(uuid())
+  followerId  String   @map("follower_id")
+  followingId String   @map("following_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  follower  User @relation("UserFollowings", fields: [followerId], references: [id])
+  following User @relation("UserFollowers", fields: [followingId], references: [id])
+
+  @@unique([followerId, followingId])
+  @@map("user_follows")
+}
+
+model CheckIn {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  date      String
+  bsInRange Boolean  @default(false) @map("bs_in_range")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date])
+  @@map("check_ins")
 }

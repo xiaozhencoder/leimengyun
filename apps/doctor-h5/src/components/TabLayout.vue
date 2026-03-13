@@ -5,6 +5,7 @@
     </div>
     <van-tabbar v-model="active" route :placeholder="true">
       <van-tabbar-item :to="{ name: 'Patients' }" icon="friends-o">患者</van-tabbar-item>
+      <van-tabbar-item :to="{ name: 'Community' }" icon="cluster-o">社区</van-tabbar-item>
       <van-tabbar-item :to="{ name: 'Messages' }" icon="chat-o" :badge="chatStore.totalUnreadCount || ''">消息</van-tabbar-item>
       <van-tabbar-item :to="{ name: 'Profile' }" icon="user-o">我的</van-tabbar-item>
     </van-tabbar>
@@ -21,7 +22,7 @@ const route = useRoute()
 const chatStore = useChatStore()
 const active = ref(0)
 
-const TAB_MAP: Record<string, number> = { Patients: 0, Messages: 1, Profile: 2 }
+const TAB_MAP: Record<string, number> = { Patients: 0, Community: 1, Messages: 2, Profile: 3 }
 watch(() => route.name, (name) => { active.value = TAB_MAP[name as string] ?? 0 }, { immediate: true })
 
 onMounted(() => { chatStore.refreshUnreadCount() })
