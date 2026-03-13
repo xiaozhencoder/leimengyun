@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../common/prisma.service'
+import { QueryPostDto } from './dto/query-post.dto'
 
 @Injectable()
 export class CommunityService {
@@ -32,5 +33,171 @@ export class CommunityService {
     }
 
     return { message: '话题种子数据已初始化', count: topics.length }
+  }
+
+  async getPosts(userId: string, query: QueryPostDto) {
+    const { page = 1, pageSize = 20, tab = 'recommend', topicId } = query
+    const skip = (page - 1) * pageSize
+
+    const where: any = { status: 'PUBLISHED' }
+    if (topicId) where.topicId = topicId
+    if (tab === 'doctor') where.contentType = 'DOCTOR_ARTICLE'
+    if (tab === 'following') {
+      const followings = await this.prisma.userFollow.findMany({
+        where: { followerId: userId },
+        select: { followingId: true },
+      })
+      where.authorId = { in: followings.map(f => f.followingId) }
+    }
+
+    const [posts, total] = await Promise.all([
+      this.prisma.post.findMany({
+        where,
+        include: {
+          author: {
+            select: {
+              id: true,
+              avatarUrl: true,
+              role: true,
+              patientProfile: { select: { nickname: true, diabetesType: true, treatmentPlan: true } },
+              doctorProfile: { select: { realName: true, department: true, title: true, verifyStatus: true } },
+            },
+          },
+          topic: { select: { id: true, name: true, icon: true } },
+        },
+        orderBy: [{ isTop: 'desc' }, { createdAt: 'desc' }],
+        skip,
+        take: pageSize,
+      }),
+      this.prisma.post.count({ where }),
+    ])
+
+    const postIds = posts.map(p => p.id)
+    const [likedSet, collectedSet] = await Promise.all([
+      this.prisma.postLike.findMany({ where: { userId, postId: { in: postIds } }, select: { postId: true } }),
+      this.prisma.postCollect.findMany({ where: { userId, postId: { in: postIds } }, select: { postId: true } }),
+    ])
+    const likedIds = new Set(likedSet.map(l => l.postId))
+    const collectedIds = new Set(collectedSet.map(c => c.postId))
+
+    const list = posts.map(post => {
+      const isPatient = post.author.role === 'PATIENT'
+      const authorName = post.isAnonymous
+        ? '匿名糖友'
+        : (isPatient ? post.author.patientProfile?.nickname : post.author.doctorProfile?.realName) || '用户'
+
+      return {
+        id: post.id,
+        author: {
+          id: post.isAnonymous ? null : post.author.id,
+          nickname: authorName,
+          avatarUrl: post.isAnonymous ? null : post.author.avatarUrl,
+          role: post.author.role,
+          diabetesType: isPatient ? post.author.patientProfile?.diabetesType : null,
+          treatmentPlan: isPatient ? post.author.patientProfile?.treatmentPlan : null,
+          department: !isPatient ? post.author.doctorProfile?.department : null,
+          verifyStatus: !isPatient ? post.author.doctorProfile?.verifyStatus : null,
+          isAnonymous: post.isAnonymous,
+        },
+        contentType: post.contentType,
+        title: post.title,
+        content: post.content,
+        images: post.images,
+        topic: post.topic,
+        bloodSugarData: post.bloodSugarData,
+        likeCount: post.likeCount,
+        commentCount: post.commentCount,
+        collectCount: post.collectCount,
+        isLiked: likedIds.has(post.id),
+        isCollected: collectedIds.has(post.id),
+        isTop: post.isTop,
+        createdAt: post.createdAt,
+      }
+    })
+
+    return { list, total, hasMore: skip + pageSize < total }
+  }
+
+  async getPostById(userId: string, postId: string) {
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+      include: {
+        author: {
+          select: {
+            id: true,
+            avatarUrl: true,
+            role: true,
+            patientProfile: { select: { nickname: true, diabetesType: true, treatmentPlan: true, createdAt: true } },
+            doctorProfile: { select: { realName: true, hospital: true, department: true, title: true, verifyStatus: true } },
+          },
+        },
+        topic: { select: { id: true, name: true, icon: true } },
+      },
+    })
+
+    if (!post || post.status === 'DELETED') {
+      throw new NotFoundException('帖子不存在')
+    }
+    if (post.status === 'HIDDEN') {
+      throw new NotFoundException('帖子已被隐藏')
+    }
+
+    const [liked, collected, followed] = await Promise.all([
+      this.prisma.postLike.findUnique({ where: { postId_userId: { postId, userId } } }),
+      this.prisma.postCollect.findUnique({ where: { postId_userId: { postId, userId } } }),
+      post.isAnonymous ? null : this.prisma.userFollow.findUnique({
+        where: { followerId_followingId: { followerId: userId, followingId: post.authorId } },
+      }),
+    ])
+
+    const isPatient = post.author.role === 'PATIENT'
+    const authorName = post.isAnonymous
+      ? '匿名糖友'
+      : (isPatient ? post.author.patientProfile?.nickname : post.author.doctorProfile?.realName) || '用户'
+
+    return {
+      id: post.id,
+      author: {
+        id: post.isAnonymous ? null : post.author.id,
+        nickname: authorName,
+        avatarUrl: post.isAnonymous ? null : post.author.avatarUrl,
+        role: post.author.role,
+        diabetesType: isPatient ? post.author.patientProfile?.diabetesType : null,
+        treatmentPlan: isPatient ? post.author.patientProfile?.treatmentPlan : null,
+        hospital: !isPatient ? post.author.doctorProfile?.hospital : null,
+        department: !isPatient ? post.author.doctorProfile?.department : null,
+        title: !isPatient ? post.author.doctorProfile?.title : null,
+        verifyStatus: !isPatient ? post.author.doctorProfile?.verifyStatus : null,
+        isAnonymous: post.isAnonymous,
+        isFollowed: !!followed,
+      },
+      contentType: post.contentType,
+      title: post.title,
+      content: post.content,
+      images: post.images,
+      topic: post.topic,
+      bloodSugarData: post.bloodSugarData,
+      likeCount: post.likeCount,
+      commentCount: post.commentCount,
+      collectCount: post.collectCount,
+      isLiked: !!liked,
+      isCollected: !!collected,
+      isTop: post.isTop,
+      createdAt: post.createdAt,
+    }
+  }
+
+  async getTopicById(userId: string, topicId: string, query: QueryPostDto) {
+    const topic = await this.prisma.topic.findUnique({ where: { id: topicId } })
+    if (!topic) throw new NotFoundException('话题不存在')
+
+    const posts = await this.getPosts(userId, { ...query, topicId })
+
+    return {
+      topic,
+      posts: posts.list,
+      total: posts.total,
+      hasMore: posts.hasMore,
+    }
   }
 }
