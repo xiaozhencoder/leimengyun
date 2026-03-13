@@ -69,3 +69,42 @@ export const TREATMENT_PLAN_LABELS: Record<string, string> = {
   ORAL: '口服药物',
   LIFESTYLE: '生活方式管理',
 }
+
+export const QUESTIONNAIRE_CATEGORY_LABELS: Record<string, string> = {
+  BLOOD_SUGAR_MANAGEMENT: '血糖管理',
+  DIET_MANAGEMENT: '饮食管理',
+  EXERCISE_MANAGEMENT: '运动管理',
+  MEDICATION_ADHERENCE: '用药依从',
+  QUALITY_OF_LIFE: '生活质量',
+  HYPOGLYCEMIA_RISK: '低血糖风险',
+  FOOT_CARE: '足部护理',
+  MENTAL_HEALTH: '心理状态',
+  CUSTOM: '自定义',
+}
+
+export const QUESTIONNAIRE_CATEGORY_ICONS: Record<string, string> = {
+  BLOOD_SUGAR_MANAGEMENT: '📊',
+  DIET_MANAGEMENT: '🍱',
+  EXERCISE_MANAGEMENT: '🏃',
+  MEDICATION_ADHERENCE: '💊',
+  QUALITY_OF_LIFE: '❤️',
+  HYPOGLYCEMIA_RISK: '⚠️',
+  FOOT_CARE: '🦶',
+  MENTAL_HEALTH: '🧠',
+  CUSTOM: '📋',
+}
+
+export const SCORE_LEVELS = [
+  { min: 80, label: '优秀', color: '#1AAD6E', desc: '管理非常好，继续保持' },
+  { min: 60, label: '良好', color: '#3B82F6', desc: '总体不错，仍有提升空间' },
+  { min: 40, label: '一般', color: '#FFB020', desc: '需要改善部分习惯' },
+  { min: 0, label: '较差', color: '#FF4D4F', desc: '建议加强管理，多与医生沟通' },
+]
+
+export function getScoreLevel(totalScore: number, maxScore: number) {
+  const percentage = maxScore > 0 ? (totalScore / maxScore) * 100 : 0
+  for (const level of SCORE_LEVELS) {
+    if (percentage >= level.min) return { ...level, percentage: Math.round(percentage * 10) / 10 }
+  }
+  return { ...SCORE_LEVELS[SCORE_LEVELS.length - 1], percentage: 0 }
+}

@@ -53,6 +53,11 @@ model User {
   followings    UserFollow[]   @relation("UserFollowings")
   checkIns      CheckIn[]
 
+  // 问卷关系
+  createdTemplates    QuestionnaireTemplate[]    @relation("TemplateCreator")
+  sentAssignments     QuestionnaireAssignment[]  @relation("AssignmentDoctor")
+  receivedAssignments QuestionnaireAssignment[]  @relation("AssignmentPatient")
+
   @@map("users")
 }
 
@@ -418,4 +423,90 @@ model CheckIn {
 
   @@unique([userId, date])
   @@map("check_ins")
+}
+
+// ============================================
+// 问卷管理
+// ============================================
+
+enum QuestionnaireCategory {
+  BLOOD_SUGAR_MANAGEMENT
+  DIET_MANAGEMENT
+  EXERCISE_MANAGEMENT
+  MEDICATION_ADHERENCE
+  QUALITY_OF_LIFE
+  HYPOGLYCEMIA_RISK
+  FOOT_CARE
+  MENTAL_HEALTH
+  CUSTOM
+}
+
+enum TemplateStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum AssignmentStatus {
+  PENDING
+  COMPLETED
+  EXPIRED
+  CANCELLED
+}
+
+model QuestionnaireTemplate {
+  id            String                 @id @default(uuid())
+  title         String
+  description   String?                @db.Text
+  category      QuestionnaireCategory
+  questions     Json
+  totalScore    Int?                   @map("total_score")
+  estimatedTime Int                    @default(5) @map("estimated_time")
+  isSystem      Boolean                @default(true) @map("is_system")
+  creatorId     String?                @map("creator_id")
+  status        TemplateStatus         @default(ACTIVE)
+  sortOrder     Int                    @default(0) @map("sort_order")
+  createdAt     DateTime               @default(now()) @map("created_at")
+  updatedAt     DateTime               @updatedAt @map("updated_at")
+
+  creator     User?                    @relation("TemplateCreator", fields: [creatorId], references: [id])
+  assignments QuestionnaireAssignment[]
+
+  @@map("questionnaire_templates")
+}
+
+model QuestionnaireAssignment {
+  id         String           @id @default(uuid())
+  templateId String           @map("template_id")
+  doctorId   String           @map("doctor_id")
+  patientId  String           @map("patient_id")
+  status     AssignmentStatus @default(PENDING)
+  deadline   DateTime?
+  message    String?          @db.VarChar(200)
+  createdAt  DateTime         @default(now()) @map("created_at")
+  updatedAt  DateTime         @updatedAt @map("updated_at")
+
+  template QuestionnaireTemplate  @relation(fields: [templateId], references: [id])
+  doctor   User                   @relation("AssignmentDoctor", fields: [doctorId], references: [id])
+  patient  User                   @relation("AssignmentPatient", fields: [patientId], references: [id])
+  response QuestionnaireResponse?
+
+  @@index([doctorId, createdAt])
+  @@index([patientId, status])
+  @@map("questionnaire_assignments")
+}
+
+model QuestionnaireResponse {
+  id              String   @id @default(uuid())
+  assignmentId    String   @unique @map("assignment_id")
+  answers         Json
+  totalScore      Int?     @map("total_score")
+  dimensionScores Json?    @map("dimension_scores")
+  duration        Int?
+  submittedAt     DateTime @default(now()) @map("submitted_at")
+  doctorNote      String?  @db.Text @map("doctor_note")
+  notedAt         DateTime? @map("noted_at")
+
+  assignment QuestionnaireAssignment @relation(fields: [assignmentId], references: [id])
+
+  @@map("questionnaire_responses")
 }
