@@ -8,43 +8,43 @@
       <!-- Header with template title -->
       <div class="result-header">
         <div class="template-title">{{ result.template?.title || '问卷结果' }}</div>
-        <div class="submit-date">提交于 {{ formatDate(result.submittedAt) }}</div>
+        <div class="submit-date">提交于 {{ formatDate(result.response?.submittedAt) }}</div>
       </div>
 
       <!-- Score circle -->
-      <div v-if="result.score != null" class="score-section">
+      <div v-if="result.response?.totalScore != null" class="score-section">
         <div class="score-circle" :style="{ borderColor: scoreColor }">
-          <span class="score-value">{{ result.score }}</span>
-          <span class="score-total">/ {{ result.maxScore }}</span>
+          <span class="score-value">{{ result.response.totalScore }}</span>
+          <span class="score-total">/ {{ result.template?.totalScore }}</span>
         </div>
-        <div class="score-level" :style="{ color: scoreColor }">{{ levelText }}</div>
-        <div v-if="levelDesc" class="score-desc">{{ levelDesc }}</div>
+        <div class="score-level" :style="{ color: scoreColor }">{{ result.level?.level || levelText }}</div>
+        <div v-if="result.level?.message" class="score-desc">{{ result.level.message }}</div>
       </div>
 
       <!-- Level description card -->
-      <div v-if="result.levelDescription" class="card">
+      <div v-if="result.level?.message && !result.response?.totalScore" class="card">
         <div class="card-title">评估说明</div>
-        <div class="level-desc-text">{{ result.levelDescription }}</div>
+        <div class="level-desc-text">{{ result.level.message }}</div>
       </div>
 
       <!-- Dimension scores -->
-      <div v-if="result.dimensions?.length" class="card">
+      <div v-if="dimensionList.length" class="card">
         <div class="card-title">各维度得分</div>
         <div
-          v-for="dim in result.dimensions"
+          v-for="dim in dimensionList"
           :key="dim.name"
           class="dimension-item"
         >
           <div class="dim-header">
             <span class="dim-name">{{ dim.name }}</span>
-            <span class="dim-score">{{ dim.score }} / {{ dim.maxScore }}</span>
+            <span class="dim-score">{{ dim.score }}</span>
           </div>
           <div class="dim-bar-bg">
             <div
               class="dim-bar-fill"
               :style="{
-                width: dim.maxScore > 0 ? (dim.score / dim.maxScore * 100) + '%' : '0%',
-                background: getDimColor(dim.score, dim.maxScore),
+                width: maxDimScore > 0 ? (dim.score / maxDimScore * 100) + '%' : '0%',
+                background: getDimColor(dim.score, maxDimScore),
               }"
             />
           </div>
@@ -52,15 +52,15 @@
       </div>
 
       <!-- Doctor note -->
-      <div v-if="result.doctorNote" class="note-card">
+      <div v-if="result.response?.doctorNote" class="note-card">
         <div class="note-header">
           <span class="note-icon">📝</span>
           <span class="note-title">医生批注</span>
         </div>
         <div class="note-meta">
-          {{ result.doctorNote.doctorName }} · {{ formatDate(result.doctorNote.createdAt) }}
+          {{ result.doctorName }} · {{ formatDate(result.response.notedAt) }}
         </div>
-        <div class="note-content">{{ result.doctorNote.content }}</div>
+        <div class="note-content">{{ result.response.doctorNote }}</div>
       </div>
 
       <!-- Expandable answers section -->
@@ -71,7 +71,7 @@
         </div>
         <div v-if="showAnswers" class="answers-list">
           <div
-            v-for="(item, idx) in result.answers"
+            v-for="(item, idx) in answerList"
             :key="idx"
             class="answer-item"
           >
@@ -96,8 +96,34 @@ const loading = ref(true)
 const showAnswers = ref(false)
 
 const scorePercent = computed(() => {
-  if (!result.value || result.value.score == null || !result.value.maxScore) return 0
-  return Math.round((result.value.score / result.value.maxScore) * 100)
+  if (result.value?.level?.percentage != null) return Math.round(result.value.level.percentage)
+  const score = result.value?.response?.totalScore
+  const max = result.value?.template?.totalScore
+  if (score == null || !max) return 0
+  return Math.round((score / max) * 100)
+})
+
+const dimensionList = computed(() => {
+  const scores = result.value?.response?.dimensionScores
+  if (!scores || typeof scores !== 'object') return []
+  return Object.entries(scores).map(([name, score]) => ({ name, score: score as number }))
+})
+
+const maxDimScore = computed(() => {
+  if (!dimensionList.value.length) return 0
+  return Math.max(...dimensionList.value.map((d) => d.score))
+})
+
+const answerList = computed(() => {
+  const answers = result.value?.response?.answers || []
+  const questions = result.value?.template?.questions || []
+  return answers.map((a: any) => {
+    const q = questions.find((q: any) => q.id === a.questionId)
+    return {
+      questionTitle: q?.title || a.questionId,
+      value: a.value,
+    }
+  })
 })
 
 const scoreColor = computed(() => {
