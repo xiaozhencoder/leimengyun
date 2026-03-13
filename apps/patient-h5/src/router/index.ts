@@ -148,6 +148,12 @@ const routes = [
     component: () => import('@/views/community/MyCommunityPage.vue'),
     meta: { auth: true },
   },
+  {
+    path: '/community/search',
+    name: 'CommunitySearch',
+    component: () => import('@/views/community/SearchPage.vue'),
+    meta: { auth: true },
+  },
 ]
 
 const router = createRouter({
