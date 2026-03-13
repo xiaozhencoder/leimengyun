@@ -32,3 +32,4 @@
 - **Server .env file**: Must exist at `apps/server/.env` (copy from `.env.example` at the repo root if missing). The update script handles this automatically.
 - **Docker in Cloud Agent VMs**: Requires `fuse-overlayfs` storage driver and `iptables-legacy`. See the Docker setup steps in the update script / VM snapshot for details.
 - **Enum values for patient profile**: `diabetesType` must be one of `TYPE_1`, `TYPE_2`, `GESTATIONAL`, `OTHER`; `treatmentPlan` must be one of `CSII`, `MDI`, `ORAL`, `LIFESTYLE` (defined in `apps/server/prisma/schema.prisma`).
+- **Seed scripts**: Run from `apps/server` with `npx ts-node --compiler-options '{"module":"CommonJS"}' prisma/seed-community.ts` or `prisma/seed-questionnaire.ts`. The questionnaire seed is idempotent (deletes existing system templates before re-creating).
