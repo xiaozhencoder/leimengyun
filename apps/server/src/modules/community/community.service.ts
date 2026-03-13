@@ -20,17 +20,42 @@ export class CommunityService {
     return null
   }
 
+  /** 热门话题数量（按帖子数+点赞数动态计算） */
+  private readonly HOT_TOP_N = 6
+
+  /** 热度权重：帖子数 * POST_WEIGHT + 总点赞数 * LIKE_WEIGHT */
+  private readonly HOT_POST_WEIGHT = 2
+  private readonly HOT_LIKE_WEIGHT = 1
+
   async getTopics() {
-    return this.prisma.topic.findMany({
-      orderBy: [{ isHot: 'desc' }, { sortOrder: 'asc' }, { postCount: 'desc' }],
+    const topics = await this.prisma.topic.findMany({
+      include: { posts: { select: { likeCount: true } } },
+      orderBy: { sortOrder: 'asc' },
+    })
+
+    const withEngagement = topics.map((t) => {
+      const totalLikes = t.posts.reduce((s, p) => s + p.likeCount, 0)
+      const hotScore = t.postCount * this.HOT_POST_WEIGHT + totalLikes * this.HOT_LIKE_WEIGHT
+      return { ...t, totalLikes, hotScore }
+    })
+
+    const sortedByHot = [...withEngagement].sort((a, b) => b.hotScore - a.hotScore)
+    const hotIds = new Set(sortedByHot.slice(0, this.HOT_TOP_N).map((x) => x.id))
+
+    return topics.map((t) => {
+      const { posts, ...rest } = t
+      return {
+        ...rest,
+        isHot: hotIds.has(t.id),
+      }
     })
   }
 
   async seedTopics() {
     const topics = [
-      { name: '控糖经验', icon: '📊', description: '分享血糖管理心得和技巧', isHot: true, sortOrder: 1 },
-      { name: '饮食交流', icon: '🍱', description: '交流低碳水食谱和饮食搭配', isHot: true, sortOrder: 2 },
-      { name: '运动打卡', icon: '🏃', description: '分享运动记录和运动对血糖的影响', isHot: true, sortOrder: 3 },
+      { name: '控糖经验', icon: '📊', description: '分享血糖管理心得和技巧', isHot: false, sortOrder: 1 },
+      { name: '饮食交流', icon: '🍱', description: '交流低碳水食谱和饮食搭配', isHot: false, sortOrder: 2 },
+      { name: '运动打卡', icon: '🏃', description: '分享运动记录和运动对血糖的影响', isHot: false, sortOrder: 3 },
       { name: '新人求助', icon: '🆕', description: '新确诊患者提问交流', isHot: false, sortOrder: 4 },
       { name: '胰岛素泵', icon: '💉', description: '泵友交流使用经验', isHot: false, sortOrder: 5 },
       { name: '心情树洞', icon: '🌳', description: '匿名倾诉、情感互助', isHot: false, sortOrder: 6 },
