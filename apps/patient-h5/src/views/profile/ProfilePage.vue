@@ -11,6 +11,7 @@
       <van-cell title="健康档案" icon="description" is-link to="/health-profile" />
       <van-cell title="我的医生" icon="friends-o" is-link to="/bind-doctor" :value="doctorCount + '位'" />
       <van-cell title="健康报告" icon="chart-trending-o" is-link to="/health-report" />
+      <van-cell title="我的社区" icon="cluster-o" is-link to="/community/my" />
     </van-cell-group>
     <van-cell-group inset style="margin-top: 12px">
       <van-cell title="设置" icon="setting-o" is-link to="/settings" />

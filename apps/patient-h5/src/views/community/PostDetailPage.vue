@@ -1,6 +1,10 @@
 <template>
   <div class="post-detail-page">
-    <van-nav-bar title="帖子详情" left-arrow @click-left="$router.back()" />
+    <van-nav-bar title="帖子详情" left-arrow @click-left="$router.back()">
+      <template #right>
+        <van-icon name="ellipsis" size="20" @click="showActions = true" />
+      </template>
+    </van-nav-bar>
     <van-loading v-if="!post" class="detail-loading" />
     <template v-else>
       <div class="page-body">
@@ -65,6 +69,8 @@
         <input class="comment-input" placeholder="写评论..." readonly @click="showToast('评论功能即将上线')" />
         <button class="send-btn" @click="showToast('评论功能即将上线')">发送</button>
       </div>
+
+      <van-action-sheet v-model:show="showActions" :actions="actionOptions" @select="onActionSelect" cancel-text="取消" />
     </template>
   </div>
 </template>
@@ -72,8 +78,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { showToast, showFailToast, showImagePreview } from 'vant'
-import { getPostById, togglePostLike, togglePostCollect, toggleFollow } from '@/api/community'
+import { showToast, showFailToast, showImagePreview, showConfirmDialog, showSuccessToast } from 'vant'
+import { getPostById, togglePostLike, togglePostCollect, toggleFollow, deletePost } from '@/api/community'
 import { useUserStore } from '@/stores/user'
 import { DIABETES_TYPE_LABELS, TREATMENT_PLAN_LABELS } from '@leimengyun/shared'
 
@@ -83,6 +89,32 @@ const userStore = useUserStore()
 const postId = route.params.id as string
 const post = ref<any>(null)
 const myUserId = computed(() => userStore.userInfo?.id || '')
+const showActions = ref(false)
+
+const actionOptions = computed(() => {
+  if (post.value?.author?.id === myUserId.value) {
+    return [
+      { name: '删除帖子', color: '#FF4D4F' },
+    ]
+  }
+  return [
+    { name: '举报', color: '#FF4D4F' },
+  ]
+})
+
+async function onActionSelect(action: any) {
+  showActions.value = false
+  if (action.name === '删除帖子') {
+    try {
+      await showConfirmDialog({ title: '删除帖子', message: '确定删除？删除后不可恢复。' })
+      await deletePost(postId)
+      showSuccessToast('已删除')
+      setTimeout(() => router.back(), 300)
+    } catch { /* cancelled */ }
+  } else if (action.name === '举报') {
+    showToast('已收到举报，我们会尽快处理')
+  }
+}
 
 const TITLE_LABELS: Record<string, string> = {
   CHIEF: '主任医师', ASSOCIATE_CHIEF: '副主任医师', ATTENDING: '主治医师', RESIDENT: '住院医师',
