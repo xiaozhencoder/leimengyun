@@ -91,6 +91,12 @@ const routes = [
     meta: { auth: true },
   },
   {
+    path: '/community/search',
+    name: 'CommunitySearch',
+    component: () => import('@/views/community/SearchPage.vue'),
+    meta: { auth: true },
+  },
+  {
     path: '/community/user/:id',
     name: 'CommunityUserProfile',
     component: () => import('@/views/community/UserProfilePage.vue'),

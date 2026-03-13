@@ -163,6 +163,22 @@ export class CommunityController {
     return this.communityService.toggleFollow(req.user.id, id)
   }
 
+  @Get('users/:id/followers')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '用户粉丝列表' })
+  async getFollowers(@Param('id') id: string, @Query('page') page?: string, @Query('pageSize') pageSize?: string) {
+    return this.communityService.getFollowers(id, parseInt(page || '1'), parseInt(pageSize || '20'))
+  }
+
+  @Get('users/:id/followings')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '用户关注列表' })
+  async getFollowings(@Param('id') id: string, @Query('page') page?: string, @Query('pageSize') pageSize?: string) {
+    return this.communityService.getFollowings(id, parseInt(page || '1'), parseInt(pageSize || '20'))
+  }
+
   @Get('users/:id/profile')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

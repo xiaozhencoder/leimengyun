@@ -216,6 +216,11 @@ export class CommunityService {
   }
 
   async createPost(userId: string, dto: CreatePostDto) {
+    const currentUser = await this.prisma.user.findUnique({ where: { id: userId } })
+    if (currentUser?.status === 'BANNED') {
+      throw new ForbiddenException('账号已被禁言，无法发帖')
+    }
+
     if (dto.contentType === 'DOCTOR_ARTICLE') {
       const doctor = await this.prisma.doctorProfile.findUnique({ where: { userId } })
       if (!doctor || doctor.verifyStatus !== 'APPROVED') {
@@ -226,6 +231,22 @@ export class CommunityService {
     const sensitiveWord = this.checkSensitiveWords(dto.content + (dto.title || ''))
     if (sensitiveWord) {
       throw new BadRequestException(`内容包含违规信息，请修改后重试`)
+    }
+
+    const today = new Date()
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0)
+    const todayPostCount = await this.prisma.post.count({
+      where: { authorId: userId, createdAt: { gte: startOfDay }, status: { not: 'DELETED' } },
+    })
+    if (todayPostCount >= 20) {
+      throw new BadRequestException('每日最多发布 20 条帖子')
+    }
+
+    if (dto.isAnonymous) {
+      const user = await this.prisma.user.findUnique({ where: { id: userId } })
+      if (user?.role !== 'PATIENT') {
+        throw new BadRequestException('仅患者可匿名发布')
+      }
     }
 
     if (dto.topicId) {
@@ -541,6 +562,11 @@ export class CommunityService {
     const post = await this.prisma.post.findUnique({ where: { id: postId } })
     if (!post || post.status !== 'PUBLISHED') throw new NotFoundException('帖子不存在')
 
+    const commentUser = await this.prisma.user.findUnique({ where: { id: userId } })
+    if (commentUser?.status === 'BANNED') {
+      throw new ForbiddenException('账号已被禁言，无法评论')
+    }
+
     const sensitiveWord = this.checkSensitiveWords(dto.content)
     if (sensitiveWord) {
       throw new BadRequestException(`评论包含违规信息，请修改后重试`)
@@ -627,6 +653,10 @@ export class CommunityService {
     if (existing) {
       await this.prisma.userFollow.delete({ where: { id: existing.id } })
       return { followed: false }
+    }
+    const followCount = await this.prisma.userFollow.count({ where: { followerId: userId } })
+    if (followCount >= 500) {
+      throw new BadRequestException('最多关注 500 人')
     }
     await this.prisma.userFollow.create({ data: { followerId: userId, followingId: targetUserId } })
     return { followed: true }
@@ -922,5 +952,75 @@ export class CommunityService {
     })
 
     return { type: 'post', list, total, hasMore: skip + pageSize < total }
+  }
+
+  async getFollowers(targetUserId: string, page = 1, pageSize = 20) {
+    const skip = (page - 1) * pageSize
+    const [follows, total] = await Promise.all([
+      this.prisma.userFollow.findMany({
+        where: { followingId: targetUserId },
+        include: {
+          follower: {
+            select: {
+              id: true, avatarUrl: true, role: true,
+              patientProfile: { select: { nickname: true, diabetesType: true } },
+              doctorProfile: { select: { realName: true, department: true, verifyStatus: true } },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip, take: pageSize,
+      }),
+      this.prisma.userFollow.count({ where: { followingId: targetUserId } }),
+    ])
+    return {
+      list: follows.map(f => {
+        const u = f.follower
+        const isPatient = u.role === 'PATIENT'
+        return {
+          id: u.id, avatarUrl: u.avatarUrl, role: u.role,
+          nickname: isPatient ? (u.patientProfile?.nickname || '用户') : (u.doctorProfile?.realName || '医生'),
+          diabetesType: isPatient ? u.patientProfile?.diabetesType : null,
+          department: !isPatient ? u.doctorProfile?.department : null,
+          verifyStatus: !isPatient ? u.doctorProfile?.verifyStatus : null,
+        }
+      }),
+      total, hasMore: skip + pageSize < total,
+    }
+  }
+
+  async getFollowings(targetUserId: string, page = 1, pageSize = 20) {
+    const skip = (page - 1) * pageSize
+    const [follows, total] = await Promise.all([
+      this.prisma.userFollow.findMany({
+        where: { followerId: targetUserId },
+        include: {
+          following: {
+            select: {
+              id: true, avatarUrl: true, role: true,
+              patientProfile: { select: { nickname: true, diabetesType: true } },
+              doctorProfile: { select: { realName: true, department: true, verifyStatus: true } },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip, take: pageSize,
+      }),
+      this.prisma.userFollow.count({ where: { followerId: targetUserId } }),
+    ])
+    return {
+      list: follows.map(f => {
+        const u = f.following
+        const isPatient = u.role === 'PATIENT'
+        return {
+          id: u.id, avatarUrl: u.avatarUrl, role: u.role,
+          nickname: isPatient ? (u.patientProfile?.nickname || '用户') : (u.doctorProfile?.realName || '医生'),
+          diabetesType: isPatient ? u.patientProfile?.diabetesType : null,
+          department: !isPatient ? u.doctorProfile?.department : null,
+          verifyStatus: !isPatient ? u.doctorProfile?.verifyStatus : null,
+        }
+      }),
+      total, hasMore: skip + pageSize < total,
+    }
   }
 }

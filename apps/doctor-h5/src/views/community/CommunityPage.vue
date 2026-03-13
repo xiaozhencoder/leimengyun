@@ -6,6 +6,13 @@
       </template>
     </van-nav-bar>
 
+    <div class="search-bar" @click="$router.push('/community/search')">
+      <div class="search-bar-inner">
+        <van-icon name="search" size="14" color="#969799" />
+        <span class="search-placeholder">搜索帖子、话题、用户</span>
+      </div>
+    </div>
+
     <div class="topic-scroll">
       <span
         v-for="topic in topics"
@@ -15,6 +22,11 @@
         @click="$router.push('/community/topic/' + topic.id)"
       >{{ topic.icon }} {{ topic.name }}</span>
     </div>
+
+    <van-tabs v-model:active="activeTab" shrink sticky @change="onTabChange">
+      <van-tab title="全部" name="recommend" />
+      <van-tab title="医生专栏" name="doctor" />
+    </van-tabs>
 
     <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
       <van-list
@@ -52,6 +64,11 @@ const page = ref(1)
 const loading = ref(false)
 const finished = ref(false)
 const refreshing = ref(false)
+const activeTab = ref('recommend')
+
+function onTabChange() {
+  loadPosts(true)
+}
 
 async function loadTopics() {
   try {
@@ -66,7 +83,7 @@ async function loadPosts(reset = false) {
   }
   loading.value = true
   try {
-    const res = (await getPosts({ page: page.value, pageSize: 20 })) as any
+    const res = (await getPosts({ page: page.value, pageSize: 20, tab: activeTab.value })) as any
     if (reset) {
       posts.value = res.list || []
     } else {
@@ -124,6 +141,9 @@ onMounted(() => {
 
 <style scoped>
 .community-page { min-height: 100vh; background: #f7f8fa; padding-bottom: 70px; }
+.search-bar { padding: 8px 16px; background: #fff; }
+.search-bar-inner { display: flex; align-items: center; gap: 6px; background: #f7f8fa; border-radius: 20px; padding: 0 14px; height: 34px; cursor: pointer; }
+.search-placeholder { font-size: 13px; color: #C8C9CC; }
 .topic-scroll { padding: 10px 16px; background: #fff; display: flex; gap: 8px; overflow-x: auto; border-bottom: 1px solid #ebedf0; }
 .topic-scroll::-webkit-scrollbar { display: none; }
 .topic-chip { display: flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 20px; background: #E8F8F0; color: #1AAD6E; font-size: 13px; white-space: nowrap; cursor: pointer; flex-shrink: 0; font-weight: 500; }
