@@ -176,9 +176,33 @@ body {
         <button class="action-btn btn-outline-light" onclick="document.getElementById('doctor-frame').contentWindow.location.reload()">重新加载</button>
       </div>
     </div>
+    <!-- Community -->
+    <div class="device-wrap">
+      <div class="device-label"><span class="dot" style="background:#1AAD6E"></span> 糖友社区</div>
+      <div class="phone-frame">
+        <iframe src="community.html" id="community-frame"></iframe>
+      </div>
+      <div class="actions">
+        <button class="action-btn" style="background:#1AAD6E;color:#fff" onclick="window.open('community.html', '_blank')">全屏打开</button>
+        <button class="action-btn btn-outline-light" onclick="document.getElementById('community-frame').contentWindow.location.reload()">重新加载</button>
+      </div>
+    </div>
   </div>
 
   <!-- Page List -->
+  <div class="info-section">
+    <div class="info-title">🌐 糖友社区页面清单（P1 新增）</div>
+    <div class="page-list">
+      <div class="page-item"><div class="page-item-name">社区首页</div><div class="page-item-desc">信息流 + 话题 + 打卡 + 发帖</div></div>
+      <div class="page-item"><div class="page-item-name">帖子详情</div><div class="page-item-desc">全文 + 评论 + 点赞/收藏</div></div>
+      <div class="page-item"><div class="page-item-name">发布帖子</div><div class="page-item-desc">图文 + 血糖日记 + 话题 + 匿名</div></div>
+      <div class="page-item"><div class="page-item-name">话题广场</div><div class="page-item-desc">热门话题 + 全部话题列表</div></div>
+      <div class="page-item"><div class="page-item-name">话题详情</div><div class="page-item-desc">话题下帖子列表</div></div>
+      <div class="page-item"><div class="page-item-name">用户主页</div><div class="page-item-desc">帖子列表 + 关注/粉丝</div></div>
+      <div class="page-item"><div class="page-item-name">血糖打卡</div><div class="page-item-desc">每日打卡 + 连续天数 + 日历</div></div>
+    </div>
+  </div>
+
   <div class="info-section">
     <div class="info-title">📱 患者端页面清单</div>
     <div class="page-list">
@@ -212,7 +236,7 @@ body {
   </div>
 
   <div class="footer">
-    雷檬云 · 糖尿病健康管理平台 · P0 产品原型 v1.0
+    雷檬云 · 糖尿病健康管理平台 · 产品原型 v1.1（含社区模块）
   </div>
 </body>
 </html>

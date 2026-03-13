@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>雷檬云 - 糖友社区原型</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --primary:#1AAD6E;--primary-light:#E8F8F0;--primary-dark:#158C58;
+  --accent:#3B82F6;--accent-light:#E8F0FE;
+  --danger:#FF4D4F;--warning:#FFB020;--info:#3B82F6;
+  --bg:#F7F8FA;--card:#FFF;--border:#EBEDF0;
+  --text-1:#323233;--text-2:#646566;--text-3:#969799;--text-4:#C8C9CC;
+  --font:-apple-system,BlinkMacSystemFont,'PingFang SC','Helvetica Neue',sans-serif;
+  --tab-height:50px;
+}
+html,body{font-family:var(--font);background:var(--bg);color:var(--text-1);font-size:14px;line-height:1.5;height:100%;overflow:hidden}
+.page{position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:1;display:none;flex-direction:column;overflow:hidden}
+.page.active{display:flex;z-index:10}
+.page.sub-page{z-index:20}
+.header{height:48px;background:var(--primary);color:#fff;display:flex;align-items:center;padding:0 16px;flex-shrink:0}
+.header-title{flex:1;text-align:center;font-size:17px;font-weight:600}
+.header-back{width:40px;height:48px;display:flex;align-items:center;cursor:pointer;font-size:20px}
+.header-right{width:40px;display:flex;align-items:center;justify-content:flex-end;cursor:pointer;font-size:14px}
+.page-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.page-body.has-tab{padding-bottom:var(--tab-height)}
+.tab-bar{position:fixed;bottom:0;left:0;right:0;height:var(--tab-height);background:#fff;border-top:1px solid var(--border);display:flex;z-index:100}
+.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--text-3);font-size:10px;gap:2px}
+.tab-item.active{color:var(--primary)}
+.tab-icon{font-size:22px;height:24px;line-height:24px}
+.btn{height:44px;border-radius:8px;border:none;font-size:16px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;width:100%}
+.btn:active{opacity:.7}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-sm{height:32px;font-size:13px;border-radius:16px;padding:0 14px;width:auto}
+.btn-outline{background:#fff;color:var(--primary);border:1px solid var(--primary)}
+.card{background:var(--card);border-radius:12px;padding:16px;margin:0 16px 12px}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500}
+.tag-green{background:var(--primary-light);color:var(--primary)}
+.tag-blue{background:var(--accent-light);color:var(--accent)}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--primary-light);display:flex;align-items:center;justify-content:center;color:var(--primary);font-weight:600;font-size:15px;flex-shrink:0}
+.avatar-lg{width:64px;height:64px;font-size:26px}
+.toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.75);color:#fff;padding:12px 24px;border-radius:8px;font-size:14px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+
+/* Search Bar */
+.search-bar{padding:10px 16px;background:#fff;border-bottom:1px solid var(--border)}
+.search-input-wrap{display:flex;align-items:center;background:var(--bg);border-radius:20px;padding:0 14px;height:36px}
+.search-input-wrap input{flex:1;border:none;background:transparent;outline:none;font-size:14px}
+
+/* Topic Scroll */
+.topic-scroll{padding:12px 16px;background:#fff;border-bottom:1px solid var(--border);display:flex;gap:10px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.topic-scroll::-webkit-scrollbar{display:none}
+.topic-chip{display:flex;align-items:center;gap:4px;padding:6px 14px;border-radius:20px;background:var(--primary-light);color:var(--primary);font-size:13px;white-space:nowrap;cursor:pointer;flex-shrink:0;font-weight:500}
+.topic-chip:active{opacity:.7}
+.topic-chip.hot{background:#FFF0F0;color:var(--danger)}
+
+/* Checkin Card */
+.checkin-card{margin:12px 16px;background:linear-gradient(135deg,var(--primary),#0d8a50);border-radius:12px;padding:16px;color:#fff;display:flex;align-items:center;justify-content:space-between}
+.checkin-left{display:flex;flex-direction:column;gap:4px}
+.checkin-days{font-size:20px;font-weight:700}
+.checkin-sub{font-size:12px;opacity:.85}
+.checkin-btn{background:rgba(255,255,255,.95);color:var(--primary);border:none;border-radius:20px;padding:8px 20px;font-size:14px;font-weight:600;cursor:pointer}
+.checkin-btn:active{opacity:.7}
+.checkin-btn.done{background:rgba(255,255,255,.3);color:#fff;cursor:default}
+
+/* Feed Tabs */
+.feed-tabs{display:flex;background:#fff;border-bottom:1px solid var(--border)}
+.feed-tab{flex:1;text-align:center;padding:12px 0;font-size:14px;color:var(--text-3);cursor:pointer;position:relative}
+.feed-tab.active{color:var(--primary);font-weight:600}
+.feed-tab.active::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:24px;height:3px;background:var(--primary);border-radius:2px}
+
+/* Post Card */
+.post-card{background:#fff;padding:16px;border-bottom:8px solid var(--bg)}
+.post-author{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.post-author-info{flex:1}
+.post-author-name{font-size:15px;font-weight:500;display:flex;align-items:center;gap:4px}
+.post-author-meta{font-size:12px;color:var(--text-3);margin-top:1px}
+.post-follow-btn{font-size:12px;color:var(--primary);border:1px solid var(--primary);background:#fff;border-radius:14px;padding:3px 12px;cursor:pointer}
+.post-follow-btn.followed{color:var(--text-4);border-color:var(--text-4)}
+.post-content{font-size:14px;line-height:1.6;color:var(--text-1);margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.post-content.expanded{-webkit-line-clamp:unset}
+.post-expand{color:var(--primary);font-size:13px;cursor:pointer;margin-bottom:8px}
+.post-images{display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap}
+.post-images img{border-radius:8px;object-fit:cover;background:#f0f0f0}
+.post-images.single img{width:60%;height:auto;max-height:240px}
+.post-images.double img{width:calc(50% - 2px);height:140px}
+.post-images.multi img{width:calc(33.33% - 3px);height:110px}
+.post-topic{margin-bottom:10px}
+.post-topic .tag{cursor:pointer}
+.post-actions{display:flex;gap:0;border-top:1px solid var(--border);padding-top:10px;margin-top:2px}
+.post-action{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;font-size:13px;color:var(--text-3);cursor:pointer;padding:4px 0}
+.post-action:active{opacity:.6}
+.post-action.liked{color:var(--danger)}
+.post-action.collected{color:var(--warning)}
+
+/* Blood Sugar Diary Card */
+.bs-diary-card{background:linear-gradient(135deg,var(--primary-light),#fff);border:1px solid #d0ead9;border-radius:10px;padding:12px;margin-bottom:10px}
+.bs-diary-title{font-size:12px;color:var(--primary);font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:4px}
+.bs-diary-stats{display:flex;gap:16px;margin-bottom:8px}
+.bs-diary-stat{text-align:center}
+.bs-diary-stat-value{font-size:18px;font-weight:700;color:var(--primary)}
+.bs-diary-stat-label{font-size:10px;color:var(--text-3)}
+.bs-diary-points{display:flex;gap:8px;flex-wrap:wrap}
+.bs-point{font-size:12px;color:var(--text-2);background:#fff;padding:3px 8px;border-radius:10px;border:1px solid var(--border)}
+
+/* Doctor Badge */
+.doctor-badge{display:inline-flex;align-items:center;gap:2px;font-size:11px;color:var(--accent);background:var(--accent-light);padding:1px 6px;border-radius:3px;margin-left:4px}
+
+/* FAB */
+.fab{position:fixed;bottom:70px;right:20px;width:52px;height:52px;background:var(--primary);color:#fff;border:none;border-radius:50%;font-size:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(26,173,110,.4);cursor:pointer;z-index:50}
+.fab:active{transform:scale(.9)}
+
+/* Post Detail */
+.detail-content{padding:16px;font-size:15px;line-height:1.8;color:var(--text-1)}
+.detail-images{padding:0 16px}
+.detail-images img{width:100%;border-radius:8px;margin-bottom:8px}
+.detail-actions-bar{display:flex;padding:12px 16px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:#fff}
+.comment-section{padding:16px}
+.comment-section-title{font-size:15px;font-weight:600;margin-bottom:12px}
+.comment-item{display:flex;gap:10px;padding:12px 0;border-bottom:1px solid var(--border)}
+.comment-item:last-child{border-bottom:none}
+.comment-body{flex:1}
+.comment-author{font-size:13px;font-weight:500;color:var(--text-1)}
+.comment-text{font-size:14px;color:var(--text-1);margin-top:4px;line-height:1.5}
+.comment-meta{font-size:11px;color:var(--text-3);margin-top:4px;display:flex;gap:16px}
+.comment-reply{background:var(--bg);padding:10px 12px;border-radius:8px;margin-top:8px}
+.comment-reply-author{font-size:12px;color:var(--primary);font-weight:500}
+.comment-reply-text{font-size:13px;color:var(--text-2);margin-top:2px}
+.comment-input-bar{display:flex;align-items:center;padding:8px 12px;background:#fff;border-top:1px solid var(--border);gap:8px;flex-shrink:0}
+.comment-input{flex:1;height:36px;border:1px solid var(--border);border-radius:18px;padding:0 14px;font-size:14px;outline:none}
+.comment-input:focus{border-color:var(--primary)}
+
+/* Topic Page */
+.topic-header{background:var(--primary);padding:20px 16px;color:#fff}
+.topic-header-name{font-size:22px;font-weight:700;display:flex;align-items:center;gap:8px}
+.topic-header-desc{font-size:13px;opacity:.85;margin-top:4px}
+.topic-header-count{font-size:12px;opacity:.7;margin-top:2px}
+
+/* User Profile */
+.user-profile-header{text-align:center;padding:30px 16px 20px;background:#fff}
+.user-profile-stats{display:flex;justify-content:center;gap:32px;margin-top:16px}
+.user-stat{text-align:center}
+.user-stat-value{font-size:18px;font-weight:700;display:block}
+.user-stat-label{font-size:12px;color:var(--text-3)}
+
+/* Checkin Popup */
+.checkin-popup{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:500;display:none;align-items:center;justify-content:center}
+.checkin-popup.show{display:flex}
+.checkin-popup-body{background:#fff;border-radius:16px;width:85%;max-width:340px;padding:30px 20px;text-align:center;animation:popIn .3s ease}
+@keyframes popIn{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+.checkin-popup-icon{font-size:56px}
+.checkin-popup-title{font-size:20px;font-weight:700;color:var(--primary);margin-top:12px}
+.checkin-popup-info{font-size:14px;color:var(--text-2);margin-top:8px;line-height:1.6}
+.checkin-calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:16px 0;text-align:center;font-size:12px}
+.checkin-calendar .day-label{color:var(--text-3);font-weight:500;padding:4px 0}
+.checkin-calendar .day{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:13px;color:var(--text-2)}
+.checkin-calendar .day.checked{background:var(--primary);color:#fff}
+.checkin-calendar .day.today{background:var(--primary);color:#fff;font-weight:700;box-shadow:0 2px 8px rgba(26,173,110,.3)}
+.checkin-calendar .day.empty{visibility:hidden}
+
+/* Publish Page */
+.publish-type-tabs{display:flex;gap:12px;padding:16px}
+.publish-type-tab{flex:1;text-align:center;padding:10px;border-radius:10px;background:var(--bg);font-size:14px;cursor:pointer;border:2px solid transparent}
+.publish-type-tab.active{border-color:var(--primary);background:var(--primary-light);color:var(--primary);font-weight:600}
+.publish-textarea{width:100%;min-height:160px;border:none;outline:none;font-size:15px;line-height:1.6;padding:0 16px;resize:none;color:var(--text-1);background:transparent}
+.publish-textarea::placeholder{color:var(--text-4)}
+.publish-photo-row{display:flex;gap:8px;padding:12px 16px;flex-wrap:wrap}
+.publish-photo{width:80px;height:80px;border-radius:8px;border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--text-4);cursor:pointer;background:#fff}
+.publish-photo.has-img{border:none;background:#f0f0f0}
+.publish-option{display:flex;align-items:center;padding:14px 16px;border-top:1px solid var(--border);cursor:pointer}
+.publish-option-icon{font-size:18px;margin-right:10px}
+.publish-option-label{flex:1;font-size:14px;color:var(--text-1)}
+.publish-option-value{font-size:13px;color:var(--text-3)}
+.publish-option-arrow{color:var(--text-4);margin-left:4px}
+
+/* Topic Square */
+.topic-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:12px 16px}
+.topic-grid-item{background:#fff;border-radius:12px;padding:14px 8px;text-align:center;cursor:pointer}
+.topic-grid-item:active{background:var(--bg)}
+.topic-grid-icon{font-size:28px}
+.topic-grid-name{font-size:13px;font-weight:500;margin-top:4px;color:var(--text-1)}
+.topic-grid-count{font-size:11px;color:var(--text-3);margin-top:2px}
+.topic-list-item{display:flex;align-items:center;padding:14px 16px;background:#fff;border-bottom:1px solid var(--border);cursor:pointer}
+.topic-list-item:active{background:var(--bg)}
+.topic-list-icon{font-size:24px;margin-right:12px}
+.topic-list-info{flex:1}
+.topic-list-name{font-size:15px;font-weight:500}
+.topic-list-count{font-size:12px;color:var(--text-3);margin-top:2px}
+</style>
+</head>
+<body>
+
+<!-- ==================== COMMUNITY HOME ==================== -->
+<div id="page-community" class="page active">
+  <div class="header">
+    <div class="header-title">糖友社区</div>
+    <div class="header-right" style="font-size:18px" onclick="goPage('page-topic-square')">📑</div>
+  </div>
+  <div class="page-body has-tab">
+    <div class="search-bar" onclick="showToast('搜索功能开发中')">
+      <div class="search-input-wrap">
+        <span style="color:var(--text-3);margin-right:6px">🔍</span>
+        <input placeholder="搜索帖子、话题、用户" readonly>
+      </div>
+    </div>
+    <div class="topic-scroll">
+      <div class="topic-chip hot">🔥 热门</div>
+      <div class="topic-chip" onclick="goPage('page-topic-detail')">📊 控糖经验</div>
+      <div class="topic-chip" onclick="goPage('page-topic-detail')">🍱 饮食交流</div>
+      <div class="topic-chip" onclick="goPage('page-topic-detail')">🏃 运动打卡</div>
+      <div class="topic-chip" onclick="goPage('page-topic-detail')">🆕 新人求助</div>
+      <div class="topic-chip" onclick="goPage('page-topic-detail')">💉 胰岛素泵</div>
+      <div class="topic-chip" onclick="goPage('page-topic-detail')">🌳 心情树洞</div>
+    </div>
+    <div class="checkin-card" id="checkin-card" onclick="doCheckin()">
+      <div class="checkin-left">
+        <div class="checkin-days">🏆 已连续打卡 7 天</div>
+        <div class="checkin-sub">今日血糖 3 次记录 · 达标 ✓</div>
+      </div>
+      <button class="checkin-btn" id="checkin-btn">打卡</button>
+    </div>
+    <div class="feed-tabs">
+      <div class="feed-tab active" onclick="feedTabSelect(this)">推荐</div>
+      <div class="feed-tab" onclick="feedTabSelect(this)">关注</div>
+      <div class="feed-tab" onclick="feedTabSelect(this)">医生专栏</div>
+    </div>
+
+    <!-- Post 1: Normal -->
+    <div class="post-card" onclick="goPage('page-post-detail')">
+      <div class="post-author">
+        <div class="avatar" style="background:#E8F8F0;color:#1AAD6E">明</div>
+        <div class="post-author-info">
+          <div class="post-author-name">糖友小明 <span class="tag tag-green" style="font-size:10px">1型</span></div>
+          <div class="post-author-meta">胰岛素泵 · 3小时前</div>
+        </div>
+        <button class="post-follow-btn" onclick="event.stopPropagation();toggleFollow(this)">+ 关注</button>
+      </div>
+      <div class="post-content">今天空腹血糖终于降到了5.8！分享一下我最近的控糖方法：1. 晚餐减少了碳水摄入，米饭从一碗改为半碗；2. 睡前基础率微调了0.05U/h；3. 每天坚持饭后散步30分钟。坚持了两周，效果真的很明显！</div>
+      <div class="post-images double">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='140'%3E%3Crect fill='%23E8F8F0' width='200' height='140'/%3E%3Ctext x='100' y='70' text-anchor='middle' fill='%231AAD6E' font-size='14'%3E📊 血糖趋势图%3C/text%3E%3C/svg%3E" alt="">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='140'%3E%3Crect fill='%23FFF8E6' width='200' height='140'/%3E%3Ctext x='100' y='70' text-anchor='middle' fill='%23B8860B' font-size='14'%3E🍱 晚餐照片%3C/text%3E%3C/svg%3E" alt="">
+      </div>
+      <div class="post-topic"><span class="tag tag-green" style="cursor:pointer">#控糖经验</span></div>
+      <div class="post-actions">
+        <div class="post-action" onclick="event.stopPropagation();toggleLike(this)">♡ 12</div>
+        <div class="post-action">💬 3</div>
+        <div class="post-action" onclick="event.stopPropagation();toggleCollect(this)">☆ 2</div>
+      </div>
+    </div>
+
+    <!-- Post 2: Blood Sugar Diary -->
+    <div class="post-card" onclick="goPage('page-post-detail')">
+      <div class="post-author">
+        <div class="avatar" style="background:#FFF0F5;color:#E91E8C">甜</div>
+        <div class="post-author-info">
+          <div class="post-author-name">甜蜜战士 <span class="tag tag-green" style="font-size:10px">2型</span></div>
+          <div class="post-author-meta">口服药物 · 5小时前</div>
+        </div>
+        <button class="post-follow-btn" onclick="event.stopPropagation();toggleFollow(this)">+ 关注</button>
+      </div>
+      <div class="bs-diary-card">
+        <div class="bs-diary-title">📊 今日血糖日记 · 3月13日</div>
+        <div class="bs-diary-stats">
+          <div class="bs-diary-stat"><div class="bs-diary-stat-value">6.2</div><div class="bs-diary-stat-label">均值</div></div>
+          <div class="bs-diary-stat"><div class="bs-diary-stat-value">5次</div><div class="bs-diary-stat-label">记录</div></div>
+          <div class="bs-diary-stat"><div class="bs-diary-stat-value" style="color:var(--primary)">80%</div><div class="bs-diary-stat-label">达标率</div></div>
+        </div>
+        <div class="bs-diary-points">
+          <span class="bs-point" style="color:#1AAD6E">● 5.2 空腹</span>
+          <span class="bs-point" style="color:#FFB020">● 8.5 午餐后</span>
+          <span class="bs-point" style="color:#1AAD6E">● 5.8 午餐前</span>
+          <span class="bs-point" style="color:#1AAD6E">● 6.8 早餐后</span>
+          <span class="bs-point" style="color:#1AAD6E">● 6.2 晚餐前</span>
+        </div>
+      </div>
+      <div class="post-content">今天整体控制还不错！午餐后那次8.5有点高，应该是中午吃了碗面条碳水超标了，明天注意一下 💪</div>
+      <div class="post-topic"><span class="tag tag-green">#控糖经验</span></div>
+      <div class="post-actions">
+        <div class="post-action" onclick="event.stopPropagation();toggleLike(this)">♡ 8</div>
+        <div class="post-action">💬 5</div>
+        <div class="post-action" onclick="event.stopPropagation();toggleCollect(this)">☆ 1</div>
+      </div>
+    </div>
+
+    <!-- Post 3: Doctor Article -->
+    <div class="post-card" onclick="goPage('page-post-detail')">
+      <div class="post-author">
+        <div class="avatar" style="background:var(--accent-light);color:var(--accent)">李</div>
+        <div class="post-author-info">
+          <div class="post-author-name">李明华医生 <span class="doctor-badge">✓ 认证</span></div>
+          <div class="post-author-meta">北京协和医院 · 内分泌科 · 1天前</div>
+        </div>
+      </div>
+      <div style="font-size:16px;font-weight:600;margin-bottom:8px;color:var(--text-1)">📝 空腹血糖偏高？这5个原因你可能忽略了</div>
+      <div class="post-content">很多糖友反映早起空腹血糖偏高，这种现象叫做"黎明现象"。今天和大家聊聊空腹血糖偏高的常见原因：1. 黎明现象；2. 苏木杰效应；3. 晚餐碳水过多；4. 基础胰岛素不足；5. 睡眠质量差...</div>
+      <div class="post-topic"><span class="tag tag-blue">#医生科普</span></div>
+      <div class="post-actions">
+        <div class="post-action liked" onclick="event.stopPropagation();toggleLike(this)">❤ 56</div>
+        <div class="post-action">💬 12</div>
+        <div class="post-action collected" onclick="event.stopPropagation();toggleCollect(this)">★ 28</div>
+      </div>
+    </div>
+
+    <!-- Post 4: Diet Share -->
+    <div class="post-card" onclick="goPage('page-post-detail')">
+      <div class="post-author">
+        <div class="avatar" style="background:#FFF8E6;color:#B8860B">糖</div>
+        <div class="post-author-info">
+          <div class="post-author-name">糖妈妈 <span class="tag tag-green" style="font-size:10px">妊娠期</span></div>
+          <div class="post-author-meta">MDI · 8小时前</div>
+        </div>
+        <button class="post-follow-btn" onclick="event.stopPropagation();toggleFollow(this)">+ 关注</button>
+      </div>
+      <div class="post-content">分享我的孕期低碳水午餐～鸡胸肉沙拉+半个全麦面包，总碳水大约30g，餐后2h血糖6.8，完美达标！🎉</div>
+      <div class="post-images single">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200'%3E%3Crect fill='%23FFF8E6' width='300' height='200'/%3E%3Ctext x='150' y='100' text-anchor='middle' fill='%23B8860B' font-size='16'%3E🥗 低碳水午餐%3C/text%3E%3C/svg%3E" alt="">
+      </div>
+      <div class="post-topic"><span class="tag tag-green">#饮食交流</span></div>
+      <div class="post-actions">
+        <div class="post-action" onclick="event.stopPropagation();toggleLike(this)">♡ 24</div>
+        <div class="post-action">💬 8</div>
+        <div class="post-action" onclick="event.stopPropagation();toggleCollect(this)">☆ 15</div>
+      </div>
+    </div>
+
+    <!-- Post 5: Newcomer -->
+    <div class="post-card" onclick="goPage('page-post-detail')">
+      <div class="post-author">
+        <div class="avatar" style="background:#F5F5F5;color:var(--text-3)">匿</div>
+        <div class="post-author-info">
+          <div class="post-author-name">匿名糖友</div>
+          <div class="post-author-meta">6小时前</div>
+        </div>
+      </div>
+      <div class="post-content">刚确诊2型糖尿病，感觉整个人都不好了... 空腹血糖12.3，医生让我先吃二甲双胍。想问问大家刚确诊的时候是什么心情？多久能控制好？</div>
+      <div class="post-topic"><span class="tag tag-green">#新人求助</span> <span class="tag tag-green">#心情树洞</span></div>
+      <div class="post-actions">
+        <div class="post-action" onclick="event.stopPropagation();toggleLike(this)">♡ 32</div>
+        <div class="post-action">💬 18</div>
+        <div class="post-action" onclick="event.stopPropagation();toggleCollect(this)">☆ 5</div>
+      </div>
+    </div>
+
+    <div style="height:20px"></div>
+  </div>
+  <button class="fab" onclick="goPage('page-publish')">＋</button>
+  <div class="tab-bar">
+    <div class="tab-item" onclick="showToast('首页')"><div class="tab-icon">🏠</div><span>首页</span></div>
+    <div class="tab-item" onclick="showToast('记录')"><div class="tab-icon">📋</div><span>记录</span></div>
+    <div class="tab-item active"><div class="tab-icon">🌐</div><span>社区</span></div>
+    <div class="tab-item" onclick="showToast('消息')"><div class="tab-icon">💬</div><span>消息</span></div>
+    <div class="tab-item" onclick="showToast('我的')"><div class="tab-icon">👤</div><span>我的</span></div>
+  </div>
+</div>
+
+<!-- ==================== POST DETAIL ==================== -->
+<div id="page-post-detail" class="page sub-page">
+  <div class="header">
+    <div class="header-back" onclick="goBack()">‹</div>
+    <div class="header-title">帖子详情</div>
+    <div class="header-right">⋯</div>
+  </div>
+  <div class="page-body">
+    <div style="background:#fff;padding:16px">
+      <div class="post-author" style="margin-bottom:14px">
+        <div class="avatar" style="background:#E8F8F0;color:#1AAD6E" onclick="goPage('page-user-profile')">明</div>
+        <div class="post-author-info">
+          <div class="post-author-name" onclick="goPage('page-user-profile')">糖友小明 <span class="tag tag-green" style="font-size:10px">1型</span></div>
+          <div class="post-author-meta">胰岛素泵 · 3小时前</div>
+        </div>
+        <button class="post-follow-btn" onclick="toggleFollow(this)">+ 关注</button>
+      </div>
+      <div style="font-size:15px;line-height:1.8;color:var(--text-1)">
+        今天空腹血糖终于降到了5.8！分享一下我最近的控糖方法：<br><br>
+        1. 晚餐减少了碳水摄入，米饭从一碗改为半碗<br>
+        2. 睡前基础率微调了0.05U/h<br>
+        3. 每天坚持饭后散步30分钟<br><br>
+        坚持了两周，效果真的很明显！空腹从6.5降到了5.8，餐后也基本都在8以内了。希望能帮到有同样困扰的糖友们 💪
+      </div>
+    </div>
+    <div class="detail-images">
+      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='200'%3E%3Crect fill='%23E8F8F0' width='400' height='200'/%3E%3Ctext x='200' y='100' text-anchor='middle' fill='%231AAD6E' font-size='16'%3E📊 血糖趋势图%3C/text%3E%3C/svg%3E" alt="">
+    </div>
+    <div style="padding:8px 16px"><span class="tag tag-green" style="cursor:pointer">#控糖经验</span></div>
+    <div class="detail-actions-bar">
+      <div class="post-action" onclick="toggleLike(this)">♡ 12</div>
+      <div class="post-action">💬 3</div>
+      <div class="post-action" onclick="toggleCollect(this)">☆ 2</div>
+    </div>
+    <div class="comment-section">
+      <div class="comment-section-title">评论 (3)</div>
+      <div class="comment-item">
+        <div class="avatar" style="background:#FFF0F5;color:#E91E8C;width:32px;height:32px;font-size:13px">甜</div>
+        <div class="comment-body">
+          <div class="comment-author">甜蜜战士 <span style="font-size:11px;color:var(--text-3);font-weight:400"> · 2型</span></div>
+          <div class="comment-text">学到了！我也试试减少晚餐碳水，之前一直不舍得少吃米饭 😂</div>
+          <div class="comment-meta"><span>2小时前</span><span>♡ 2</span><span style="color:var(--primary);cursor:pointer">回复</span></div>
+        </div>
+      </div>
+      <div class="comment-item">
+        <div class="avatar" style="background:#FFF8E6;color:#B8860B;width:32px;height:32px;font-size:13px">糖</div>
+        <div class="comment-body">
+          <div class="comment-author">糖妈妈 <span style="font-size:11px;color:var(--text-3);font-weight:400"> · 妊娠期</span></div>
+          <div class="comment-text">请问基础率具体是怎么调的？我也在用泵，凌晨血糖总是高</div>
+          <div class="comment-meta"><span>1小时前</span><span>♡ 0</span><span style="color:var(--primary);cursor:pointer">回复</span></div>
+          <div class="comment-reply">
+            <div class="comment-reply-author">糖友小明 回复 糖妈妈</div>
+            <div class="comment-reply-text">我是在凌晨3-6点这个时段把基础率从0.6调到了0.65U/h，建议你先测几天凌晨血糖确认时段再调</div>
+            <div class="comment-meta" style="margin-top:4px"><span>30分钟前</span><span>♡ 1</span><span style="color:var(--primary);cursor:pointer">回复</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="comment-item">
+        <div class="avatar" style="background:var(--accent-light);color:var(--accent);width:32px;height:32px;font-size:13px">李</div>
+        <div class="comment-body">
+          <div class="comment-author">李明华医生 <span class="doctor-badge">✓ 认证</span></div>
+          <div class="comment-text">很棒的分享！饭后散步确实是很好的降糖方法。建议散步时间控制在餐后15-30分钟开始，走30分钟左右效果最佳。</div>
+          <div class="comment-meta"><span>20分钟前</span><span>♡ 5</span><span style="color:var(--primary);cursor:pointer">回复</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="comment-input-bar">
+    <input class="comment-input" placeholder="写评论..." id="comment-input">
+    <button class="btn btn-primary btn-sm" onclick="showToast('评论已发布')">发送</button>
+  </div>
+</div>
+
+<!-- ==================== PUBLISH PAGE ==================== -->
+<div id="page-publish" class="page sub-page">
+  <div class="header" style="background:#fff;color:var(--text-1);border-bottom:1px solid var(--border)">
+    <div class="header-back" onclick="goBack()" style="color:var(--text-1)">×</div>
+    <div class="header-title" style="color:var(--text-1)">发布帖子</div>
+    <div class="header-right"><button class="btn btn-primary btn-sm" onclick="showToast('发布成功');setTimeout(()=>goBack(),500)">发布</button></div>
+  </div>
+  <div class="page-body">
+    <div class="publish-type-tabs">
+      <div class="publish-type-tab active" onclick="switchPublishType(this,'normal')">📝 普通帖子</div>
+      <div class="publish-type-tab" onclick="switchPublishType(this,'diary')">📊 血糖日记</div>
+    </div>
+    <div id="diary-card-area" style="display:none;padding:0 16px 12px">
+      <div class="bs-diary-card">
+        <div class="bs-diary-title">📊 今日血糖数据 · 3月13日</div>
+        <div class="bs-diary-stats">
+          <div class="bs-diary-stat"><div class="bs-diary-stat-value">6.5</div><div class="bs-diary-stat-label">均值</div></div>
+          <div class="bs-diary-stat"><div class="bs-diary-stat-value">3次</div><div class="bs-diary-stat-label">记录</div></div>
+          <div class="bs-diary-stat"><div class="bs-diary-stat-value" style="color:var(--primary)">100%</div><div class="bs-diary-stat-label">达标率</div></div>
+        </div>
+        <div class="bs-diary-points">
+          <span class="bs-point" style="color:#FFB020">● 6.5 空腹</span>
+          <span class="bs-point" style="color:#1AAD6E">● 6.5 早餐前</span>
+          <span class="bs-point" style="color:#1AAD6E">● 6.5 午餐后</span>
+        </div>
+      </div>
+    </div>
+    <textarea class="publish-textarea" placeholder="分享你的控糖故事..." maxlength="2000"></textarea>
+    <div style="text-align:right;padding:0 16px;font-size:12px;color:var(--text-4)">0/2000</div>
+    <div class="publish-photo-row" id="photo-normal">
+      <div class="publish-photo" onclick="showToast('选择照片')">📷</div>
+    </div>
+    <div style="border-top:8px solid var(--bg)">
+      <div class="publish-option" onclick="goPage('page-topic-square')">
+        <span class="publish-option-icon">📌</span>
+        <span class="publish-option-label">选择话题</span>
+        <span class="publish-option-value">控糖经验</span>
+        <span class="publish-option-arrow">›</span>
+      </div>
+      <div class="publish-option">
+        <span class="publish-option-icon">🔒</span>
+        <span class="publish-option-label">匿名发布</span>
+        <span class="publish-option-value" id="anon-status">关闭</span>
+        <span class="publish-option-arrow" onclick="toggleAnon()">›</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TOPIC SQUARE ==================== -->
+<div id="page-topic-square" class="page sub-page">
+  <div class="header">
+    <div class="header-back" onclick="goBack()">‹</div>
+    <div class="header-title">话题广场</div>
+  </div>
+  <div class="page-body">
+    <div style="padding:16px 16px 8px;font-size:15px;font-weight:600">🔥 热门话题</div>
+    <div class="topic-grid">
+      <div class="topic-grid-item" onclick="goPage('page-topic-detail')"><div class="topic-grid-icon">📊</div><div class="topic-grid-name">控糖经验</div><div class="topic-grid-count">128篇</div></div>
+      <div class="topic-grid-item" onclick="goPage('page-topic-detail')"><div class="topic-grid-icon">🍱</div><div class="topic-grid-name">饮食交流</div><div class="topic-grid-count">95篇</div></div>
+      <div class="topic-grid-item" onclick="goPage('page-topic-detail')"><div class="topic-grid-icon">🏃</div><div class="topic-grid-name">运动打卡</div><div class="topic-grid-count">76篇</div></div>
+    </div>
+    <div style="padding:16px 16px 8px;font-size:15px;font-weight:600">全部话题</div>
+    <div class="topic-list-item" onclick="goPage('page-topic-detail')"><span class="topic-list-icon">📊</span><div class="topic-list-info"><div class="topic-list-name">控糖经验</div><div class="topic-list-count">128篇帖子 · 分享血糖管理心得和技巧</div></div><span style="color:var(--text-4)">›</span></div>
+    <div class="topic-list-item" onclick="goPage('page-topic-detail')"><span class="topic-list-icon">🍱</span><div class="topic-list-info"><div class="topic-list-name">饮食交流</div><div class="topic-list-count">95篇帖子 · 交流低碳水食谱和饮食搭配</div></div><span style="color:var(--text-4)">›</span></div>
+    <div class="topic-list-item" onclick="goPage('page-topic-detail')"><span class="topic-list-icon">🏃</span><div class="topic-list-info"><div class="topic-list-name">运动打卡</div><div class="topic-list-count">76篇帖子 · 分享运动对血糖的影响</div></div><span style="color:var(--text-4)">›</span></div>
+    <div class="topic-list-item" onclick="goPage('page-topic-detail')"><span class="topic-list-icon">🆕</span><div class="topic-list-info"><div class="topic-list-name">新人求助</div><div class="topic-list-count">64篇帖子 · 新确诊患者提问交流</div></div><span style="color:var(--text-4)">›</span></div>
+    <div class="topic-list-item" onclick="goPage('page-topic-detail')"><span class="topic-list-icon">💉</span><div class="topic-list-info"><div class="topic-list-name">胰岛素泵</div><div class="topic-list-count">42篇帖子 · 泵友交流使用经验</div></div><span style="color:var(--text-4)">›</span></div>
+    <div class="topic-list-item" onclick="goPage('page-topic-detail')"><span class="topic-list-icon">🌳</span><div class="topic-list-info"><div class="topic-list-name">心情树洞</div><div class="topic-list-count">38篇帖子 · 匿名倾诉、情感互助</div></div><span style="color:var(--text-4)">›</span></div>
+    <div class="topic-list-item" onclick="goPage('page-topic-detail')"><span class="topic-list-icon">👨‍⚕️</span><div class="topic-list-info"><div class="topic-list-name">医生科普</div><div class="topic-list-count">89篇帖子 · 认证医生发布的科普文章</div></div><span style="color:var(--text-4)">›</span></div>
+    <div class="topic-list-item" onclick="goPage('page-topic-detail')"><span class="topic-list-icon">🎁</span><div class="topic-list-info"><div class="topic-list-name">好物分享</div><div class="topic-list-count">31篇帖子 · 分享实用的控糖好物</div></div><span style="color:var(--text-4)">›</span></div>
+  </div>
+</div>
+
+<!-- ==================== TOPIC DETAIL ==================== -->
+<div id="page-topic-detail" class="page sub-page">
+  <div class="header" style="background:transparent;position:absolute;z-index:10">
+    <div class="header-back" onclick="goBack()">‹</div>
+    <div class="header-title"></div>
+  </div>
+  <div class="page-body">
+    <div class="topic-header">
+      <div style="height:48px"></div>
+      <div class="topic-header-name">📊 控糖经验</div>
+      <div class="topic-header-desc">分享血糖管理心得和技巧</div>
+      <div class="topic-header-count">128 篇帖子 · 2.3k 浏览</div>
+    </div>
+    <div class="post-card" onclick="goPage('page-post-detail')">
+      <div class="post-author">
+        <div class="avatar" style="background:#E8F8F0;color:#1AAD6E">明</div>
+        <div class="post-author-info">
+          <div class="post-author-name">糖友小明 <span class="tag tag-green" style="font-size:10px">1型</span></div>
+          <div class="post-author-meta">3小时前</div>
+        </div>
+      </div>
+      <div class="post-content">今天空腹血糖终于降到了5.8！分享一下我最近的控糖方法...</div>
+      <div class="post-actions">
+        <div class="post-action">♡ 12</div>
+        <div class="post-action">💬 3</div>
+        <div class="post-action">☆ 2</div>
+      </div>
+    </div>
+    <div class="post-card" onclick="goPage('page-post-detail')">
+      <div class="post-author">
+        <div class="avatar" style="background:#FFF0F5;color:#E91E8C">甜</div>
+        <div class="post-author-info">
+          <div class="post-author-name">甜蜜战士</div>
+          <div class="post-author-meta">5小时前</div>
+        </div>
+      </div>
+      <div class="post-content">二甲双胍吃了一个月，空腹从9降到了6.2，开心！坚持低碳饮食+每天走路真的有效果...</div>
+      <div class="post-actions">
+        <div class="post-action">♡ 20</div>
+        <div class="post-action">💬 7</div>
+        <div class="post-action">☆ 4</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== USER PROFILE ==================== -->
+<div id="page-user-profile" class="page sub-page">
+  <div class="header">
+    <div class="header-back" onclick="goBack()">‹</div>
+    <div class="header-title"></div>
+  </div>
+  <div class="page-body">
+    <div class="user-profile-header">
+      <div class="avatar avatar-lg" style="margin:0 auto;background:#E8F8F0;color:#1AAD6E">明</div>
+      <div style="font-size:20px;font-weight:600;margin-top:12px">糖友小明</div>
+      <div style="font-size:13px;color:var(--text-3);margin-top:4px">1型 · 胰岛素泵 · 已管理 328 天</div>
+      <div class="user-profile-stats">
+        <div class="user-stat"><span class="user-stat-value">12</span><span class="user-stat-label">帖子</span></div>
+        <div class="user-stat"><span class="user-stat-value">56</span><span class="user-stat-label">粉丝</span></div>
+        <div class="user-stat"><span class="user-stat-value">23</span><span class="user-stat-label">关注</span></div>
+      </div>
+      <button class="btn btn-primary btn-sm" style="margin:16px auto 0;width:120px" onclick="toggleFollow(this)">+ 关注</button>
+    </div>
+    <div class="feed-tabs" style="margin-top:8px">
+      <div class="feed-tab active" onclick="feedTabSelect(this)">帖子</div>
+      <div class="feed-tab" onclick="feedTabSelect(this)">血糖日记</div>
+    </div>
+    <div class="post-card" onclick="goPage('page-post-detail')">
+      <div class="post-content">今天空腹血糖终于降到了5.8！分享一下我最近的控糖方法...</div>
+      <div class="post-actions">
+        <div class="post-action">♡ 12</div>
+        <div class="post-action">💬 3</div>
+        <div class="post-action">☆ 2</div>
+      </div>
+    </div>
+    <div class="post-card" onclick="goPage('page-post-detail')">
+      <div class="post-content">终于找到了适合我的基础率！连续3天空腹都在5-6之间，太开心了...</div>
+      <div class="post-actions">
+        <div class="post-action">♡ 8</div>
+        <div class="post-action">💬 2</div>
+        <div class="post-action">☆ 1</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== CHECKIN POPUP ==================== -->
+<div id="checkin-popup" class="checkin-popup" onclick="closeCheckin(event)">
+  <div class="checkin-popup-body" onclick="event.stopPropagation()">
+    <div class="checkin-popup-icon">🏆</div>
+    <div class="checkin-popup-title">打卡成功！</div>
+    <div class="checkin-popup-info">已连续打卡 <strong>8</strong> 天<br>今日血糖 3 次记录 · 全部达标 ✓</div>
+    <div class="checkin-calendar">
+      <div class="day-label">一</div><div class="day-label">二</div><div class="day-label">三</div><div class="day-label">四</div><div class="day-label">五</div><div class="day-label">六</div><div class="day-label">日</div>
+      <div class="day empty"></div><div class="day empty"></div><div class="day empty"></div><div class="day empty"></div><div class="day empty"></div><div class="day">1</div><div class="day">2</div>
+      <div class="day">3</div><div class="day">4</div><div class="day">5</div><div class="day checked">6</div><div class="day checked">7</div><div class="day checked">8</div><div class="day checked">9</div>
+      <div class="day checked">10</div><div class="day checked">11</div><div class="day checked">12</div><div class="day today">13</div><div class="day"></div><div class="day"></div><div class="day"></div>
+    </div>
+    <button class="btn btn-primary" style="margin-top:8px" onclick="closeCheckin();showToast('已分享到社区')">分享到社区</button>
+    <div style="margin-top:12px;font-size:13px;color:var(--text-3);cursor:pointer" onclick="closeCheckin()">关闭</div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<script>
+let pageHistory = ['page-community'];
+
+function goPage(id) {
+  document.querySelectorAll('.page.active').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  pageHistory.push(id);
+}
+
+function goBack() {
+  pageHistory.pop();
+  const prev = pageHistory[pageHistory.length - 1] || 'page-community';
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(prev).classList.add('active');
+}
+
+function feedTabSelect(el) {
+  el.parentElement.querySelectorAll('.feed-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function toggleLike(el) {
+  if (el.classList.contains('liked')) {
+    el.classList.remove('liked');
+    el.textContent = el.textContent.replace('❤', '♡');
+    const n = parseInt(el.textContent.match(/\d+/)?.[0] || '0');
+    el.textContent = '♡ ' + (n - 1);
+  } else {
+    el.classList.add('liked');
+    const n = parseInt(el.textContent.match(/\d+/)?.[0] || '0');
+    el.textContent = '❤ ' + (n + 1);
+  }
+}
+
+function toggleCollect(el) {
+  if (el.classList.contains('collected')) {
+    el.classList.remove('collected');
+    const n = parseInt(el.textContent.match(/\d+/)?.[0] || '0');
+    el.textContent = '☆ ' + (n - 1);
+  } else {
+    el.classList.add('collected');
+    const n = parseInt(el.textContent.match(/\d+/)?.[0] || '0');
+    el.textContent = '★ ' + (n + 1);
+  }
+}
+
+function toggleFollow(el) {
+  if (el.classList.contains('followed')) {
+    el.classList.remove('followed');
+    el.textContent = '+ 关注';
+  } else {
+    el.classList.add('followed');
+    el.textContent = '已关注';
+    showToast('已关注');
+  }
+}
+
+function doCheckin() {
+  const btn = document.getElementById('checkin-btn');
+  if (btn.classList.contains('done')) return;
+  btn.classList.add('done');
+  btn.textContent = '✓ 已打卡';
+  document.getElementById('checkin-card').querySelector('.checkin-days').textContent = '🏆 已连续打卡 8 天';
+  document.getElementById('checkin-popup').classList.add('show');
+}
+
+function closeCheckin(e) {
+  if (e && e.target !== document.getElementById('checkin-popup')) return;
+  document.getElementById('checkin-popup').classList.remove('show');
+}
+
+function switchPublishType(el, type) {
+  el.parentElement.querySelectorAll('.publish-type-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  const diary = document.getElementById('diary-card-area');
+  const photos = document.getElementById('photo-normal');
+  if (type === 'diary') {
+    diary.style.display = 'block';
+    photos.style.display = 'none';
+  } else {
+    diary.style.display = 'none';
+    photos.style.display = 'flex';
+  }
+}
+
+function toggleAnon() {
+  const el = document.getElementById('anon-status');
+  el.textContent = el.textContent === '关闭' ? '开启' : '关闭';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+</script>
+</body>
+</html>
