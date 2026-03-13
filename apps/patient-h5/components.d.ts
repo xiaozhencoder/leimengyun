@@ -9,6 +9,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     BloodSugarChart: typeof import('./src/components/BloodSugarChart.vue')['default']
+    PostCard: typeof import('./src/components/PostCard.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     TabLayout: typeof import('./src/components/TabLayout.vue')['default']
