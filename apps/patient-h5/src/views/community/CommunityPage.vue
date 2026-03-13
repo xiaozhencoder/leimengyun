@@ -16,13 +16,20 @@
       >{{ topic.icon }} {{ topic.name }}</span>
     </div>
 
-    <div class="checkin-card">
+    <div class="checkin-card" @click="handleCheckin">
       <div class="checkin-left">
-        <div class="checkin-days">🏆 每日血糖打卡</div>
-        <div class="checkin-sub">记录血糖，坚持打卡</div>
+        <div class="checkin-days">🏆 {{ checkinStatus.checkedInToday ? `已连续打卡 ${checkinStatus.consecutiveDays} 天` : '每日血糖打卡' }}</div>
+        <div class="checkin-sub">
+          <template v-if="checkinStatus.checkedInToday">今日血糖 {{ checkinStatus.todayBsCount }} 次记录 · {{ checkinStatus.todayBsInRange ? '达标 ✓' : '继续加油' }}</template>
+          <template v-else>记录血糖，坚持打卡</template>
+        </div>
       </div>
-      <button class="checkin-btn" @click="showToast('打卡功能即将上线')">打卡</button>
+      <button class="checkin-btn" :class="{ done: checkinStatus.checkedInToday }">
+        {{ checkinStatus.checkedInToday ? '✓ 已打卡' : '打卡' }}
+      </button>
     </div>
+
+    <CheckInPopup v-model:show="showCheckinPopup" :status="checkinStatus" :just-checked-in="justCheckedIn" />
 
     <van-tabs v-model:active="activeTab" shrink sticky @change="onTabChange">
       <van-tab title="推荐" name="recommend" />
@@ -56,9 +63,10 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { showToast, showFailToast } from 'vant'
-import { getPosts, getTopics, togglePostLike, togglePostCollect } from '@/api/community'
+import { showFailToast } from 'vant'
+import { getPosts, getTopics, togglePostLike, togglePostCollect, checkIn, getCheckInStatus } from '@/api/community'
 import PostCard from '@/components/PostCard.vue'
+import CheckInPopup from '@/components/CheckInPopup.vue'
 
 const topics = ref<any[]>([])
 const posts = ref<any[]>([])
@@ -67,6 +75,32 @@ const page = ref(1)
 const loading = ref(false)
 const finished = ref(false)
 const refreshing = ref(false)
+
+const checkinStatus = ref({ checkedInToday: false, consecutiveDays: 0, totalDays: 0, todayBsInRange: false, todayBsCount: 0 })
+const showCheckinPopup = ref(false)
+const justCheckedIn = ref(false)
+
+async function loadCheckinStatus() {
+  try {
+    checkinStatus.value = (await getCheckInStatus()) as any
+  } catch { /* */ }
+}
+
+async function handleCheckin() {
+  if (checkinStatus.value.checkedInToday) {
+    justCheckedIn.value = false
+    showCheckinPopup.value = true
+    return
+  }
+  try {
+    await checkIn()
+    justCheckedIn.value = true
+    await loadCheckinStatus()
+    showCheckinPopup.value = true
+  } catch (err: any) {
+    showFailToast(err.response?.data?.message || '打卡失败')
+  }
+}
 
 async function loadTopics() {
   try {
@@ -139,6 +173,7 @@ async function handleCollect(post: any) {
 onMounted(() => {
   loadTopics()
   loadPosts(true)
+  loadCheckinStatus()
 })
 </script>
 
@@ -155,6 +190,7 @@ onMounted(() => {
 .checkin-sub { font-size: 12px; opacity: .85; }
 .checkin-btn { background: rgba(255,255,255,.95); color: #1AAD6E; border: none; border-radius: 20px; padding: 8px 20px; font-size: 14px; font-weight: 600; cursor: pointer; }
 .checkin-btn:active { opacity: .7; }
+.checkin-btn.done { background: rgba(255,255,255,.3); color: #fff; cursor: default; }
 .fab { position: fixed; bottom: 70px; right: 20px; width: 52px; height: 52px; background: #1AAD6E; color: #fff; border: none; border-radius: 50%; font-size: 28px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(26,173,110,.4); cursor: pointer; z-index: 50; }
 .fab:active { transform: scale(.9); }
 :deep(.van-tabs__nav) { background: #fff; }

@@ -160,4 +160,28 @@ export class CommunityController {
   async getUserPosts(@Request() req, @Param('id') id: string, @Query() query: QueryPostDto) {
     return this.communityService.getUserPosts(req.user.id, id, query)
   }
+
+  @Post('check-in')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '每日打卡' })
+  async checkIn(@Request() req) {
+    return this.communityService.checkIn(req.user.id)
+  }
+
+  @Get('check-in/status')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '打卡状态' })
+  async getCheckInStatus(@Request() req) {
+    return this.communityService.getCheckInStatus(req.user.id)
+  }
+
+  @Get('check-in/history')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '打卡历史' })
+  async getCheckInHistory(@Request() req, @Query('days') days?: string) {
+    return this.communityService.getCheckInHistory(req.user.id, parseInt(days || '30'))
+  }
 }

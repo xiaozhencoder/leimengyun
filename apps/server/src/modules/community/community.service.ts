@@ -694,4 +694,105 @@ export class CommunityService {
 
     return { list, total, hasMore: skip + pageSize < total }
   }
+
+  async checkIn(userId: string) {
+    const now = new Date()
+    const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+
+    const existing = await this.prisma.checkIn.findUnique({
+      where: { userId_date: { userId, date } },
+    })
+    if (existing) return { message: '今日已打卡', alreadyCheckedIn: true }
+
+    const profile = await this.prisma.patientProfile.findUnique({ where: { userId } })
+    let bsInRange = false
+    if (profile) {
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+      const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
+      const records = await this.prisma.bloodSugarRecord.findMany({
+        where: { patientId: profile.id, recordedAt: { gte: startOfDay, lte: endOfDay } },
+      })
+      if (records.length > 0) {
+        bsInRange = records.every(r => r.value >= 3.9 && r.value <= 10.0)
+      }
+    }
+
+    await this.prisma.checkIn.create({ data: { userId, date, bsInRange } })
+    return { message: '打卡成功', alreadyCheckedIn: false }
+  }
+
+  async getCheckInStatus(userId: string) {
+    const now = new Date()
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+
+    const todayCheckIn = await this.prisma.checkIn.findUnique({
+      where: { userId_date: { userId, date: today } },
+    })
+
+    const allCheckIns = await this.prisma.checkIn.findMany({
+      where: { userId },
+      orderBy: { date: 'desc' },
+      take: 365,
+      select: { date: true },
+    })
+
+    let consecutiveDays = 0
+    let expectedDate = today
+    for (const ci of allCheckIns) {
+      if (ci.date === expectedDate) {
+        consecutiveDays++
+        const d = new Date(expectedDate + 'T00:00:00')
+        d.setDate(d.getDate() - 1)
+        expectedDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      } else {
+        break
+      }
+    }
+
+    let todayBsCount = 0
+    let todayBsInRange = false
+    const profile = await this.prisma.patientProfile.findUnique({ where: { userId } })
+    if (profile) {
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+      const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
+      const records = await this.prisma.bloodSugarRecord.findMany({
+        where: { patientId: profile.id, recordedAt: { gte: startOfDay, lte: endOfDay } },
+      })
+      todayBsCount = records.length
+      todayBsInRange = records.length > 0 && records.every(r => r.value >= 3.9 && r.value <= 10.0)
+    }
+
+    return {
+      checkedInToday: !!todayCheckIn,
+      consecutiveDays,
+      totalDays: allCheckIns.length,
+      todayBsInRange,
+      todayBsCount,
+    }
+  }
+
+  async getCheckInHistory(userId: string, days = 30) {
+    const now = new Date()
+    const result: { date: string; checked: boolean; bsInRange: boolean }[] = []
+
+    const checkIns = await this.prisma.checkIn.findMany({
+      where: { userId },
+      orderBy: { date: 'desc' },
+      take: days,
+    })
+    const checkInMap = new Map(checkIns.map(c => [c.date, c.bsInRange]))
+
+    for (let i = 0; i < days; i++) {
+      const d = new Date(now)
+      d.setDate(d.getDate() - i)
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      result.push({
+        date: dateStr,
+        checked: checkInMap.has(dateStr),
+        bsInRange: checkInMap.get(dateStr) || false,
+      })
+    }
+
+    return result.reverse()
+  }
 }
