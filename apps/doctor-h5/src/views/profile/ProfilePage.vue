@@ -18,6 +18,7 @@
     </div>
     <van-cell-group inset style="margin-top: -12px">
       <van-cell v-if="isAdmin" title="审核医生" icon="manager-o" is-link to="/pending-doctors" />
+      <van-cell title="📋 问卷管理" is-link to="/questionnaire" />
       <van-cell title="专业信息" icon="description" is-link to="/doctor-info" />
       <van-cell title="工作统计" icon="chart-trending-o" :value="'管理' + patientCount + '位患者'" />
       <van-cell title="通知设置" icon="bell" is-link to="/settings" />

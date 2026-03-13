@@ -154,6 +154,24 @@ const routes = [
     component: () => import('@/views/community/SearchPage.vue'),
     meta: { auth: true },
   },
+  {
+    path: '/questionnaire',
+    name: 'MyQuestionnaire',
+    component: () => import('@/views/questionnaire/MyQuestionnairePage.vue'),
+    meta: { auth: true },
+  },
+  {
+    path: '/questionnaire/fill/:id',
+    name: 'FillQuestionnaire',
+    component: () => import('@/views/questionnaire/FillQuestionnairePage.vue'),
+    meta: { auth: true },
+  },
+  {
+    path: '/questionnaire/result/:id',
+    name: 'QuestionnaireResult',
+    component: () => import('@/views/questionnaire/QuestionnaireResultPage.vue'),
+    meta: { auth: true },
+  },
 ]
 
 const router = createRouter({

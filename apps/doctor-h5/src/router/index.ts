@@ -102,6 +102,24 @@ const routes = [
     component: () => import('@/views/community/UserProfilePage.vue'),
     meta: { auth: true },
   },
+  {
+    path: '/questionnaire',
+    name: 'QuestionnaireCenter',
+    component: () => import('@/views/questionnaire/QuestionnaireCenterPage.vue'),
+    meta: { auth: true },
+  },
+  {
+    path: '/questionnaire/send',
+    name: 'SendQuestionnaire',
+    component: () => import('@/views/questionnaire/SendQuestionnairePage.vue'),
+    meta: { auth: true },
+  },
+  {
+    path: '/questionnaire/result/:id',
+    name: 'QuestionnaireResult',
+    component: () => import('@/views/questionnaire/QuestionnaireResultPage.vue'),
+    meta: { auth: true },
+  },
 ]
 
 const router = createRouter({
