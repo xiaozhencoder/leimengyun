@@ -60,14 +60,52 @@
 
         <div class="comments-section">
           <div class="comments-title">评论 ({{ post.commentCount }})</div>
-          <van-empty v-if="!post.commentCount" description="暂无评论，来发表第一条评论吧" image="default" />
-          <div v-else class="comments-placeholder">评论功能将在阶段4实现</div>
+          <van-empty v-if="!comments.length && !commentsLoading" description="暂无评论，来发表第一条评论吧" image="default" />
+          <van-loading v-if="commentsLoading" style="display:flex;justify-content:center;padding:20px" />
+          <div v-for="comment in comments" :key="comment.id" class="comment-item">
+            <div class="comment-avatar" :style="{ background: comment.author.role === 'DOCTOR' ? '#E8F0FE' : '#E8F8F0', color: comment.author.role === 'DOCTOR' ? '#3B82F6' : '#1AAD6E' }">
+              {{ comment.author.nickname?.[0] || '?' }}
+            </div>
+            <div class="comment-body">
+              <div class="comment-author-name">
+                {{ comment.author.nickname }}
+                <span v-if="comment.author.verifyStatus === 'APPROVED'" class="doctor-badge">✓ 认证</span>
+                <span v-if="comment.author.diabetesType" class="type-tag">{{ DIABETES_TYPE_LABELS[comment.author.diabetesType] || '' }}</span>
+              </div>
+              <div class="comment-text">{{ comment.content }}</div>
+              <div class="comment-meta-row">
+                <span class="comment-time">{{ timeAgo(comment.createdAt) }}</span>
+                <span class="comment-like-btn" @click="likeComment(comment)">♡ {{ comment.likeCount || '' }}</span>
+                <span class="comment-reply-btn" @click="startReply(comment)">回复</span>
+              </div>
+              <div v-if="comment.replies?.length" class="comment-replies">
+                <div v-for="reply in comment.replies" :key="reply.id" class="reply-item">
+                  <span class="reply-author">{{ reply.author.nickname }}</span>
+                  <span v-if="reply.author.verifyStatus === 'APPROVED'" class="doctor-badge" style="font-size:9px">✓</span>
+                  <span class="reply-text"> {{ reply.content }}</span>
+                  <div class="comment-meta-row" style="margin-top:4px">
+                    <span class="comment-time">{{ timeAgo(reply.createdAt) }}</span>
+                    <span class="comment-reply-btn" @click="startReply(comment, reply)">回复</span>
+                  </div>
+                </div>
+                <div v-if="comment.replyCount > 3" class="view-more-replies" @click="$router.push('/community/post/' + postId)">
+                  查看全部 {{ comment.replyCount }} 条回复 ›
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       <div class="comment-input-bar">
-        <input class="comment-input" placeholder="写评论..." readonly @click="showToast('评论功能即将上线')" />
-        <button class="send-btn" @click="showToast('评论功能即将上线')">发送</button>
+        <input
+          class="comment-input"
+          v-model="commentText"
+          :placeholder="replyTarget ? `回复 ${replyTarget.name}...` : '写评论...'"
+          @keyup.enter="submitComment"
+          ref="commentInputRef"
+        />
+        <button class="send-btn" :disabled="!commentText.trim()" @click="submitComment">发送</button>
       </div>
 
       <van-action-sheet v-model:show="showActions" :actions="actionOptions" @select="onActionSelect" cancel-text="取消" />
@@ -79,7 +117,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast, showFailToast, showImagePreview, showConfirmDialog, showSuccessToast } from 'vant'
-import { getPostById, togglePostLike, togglePostCollect, toggleFollow, deletePost } from '@/api/community'
+import { getPostById, togglePostLike, togglePostCollect, toggleFollow, deletePost, getComments, createComment, toggleCommentLike } from '@/api/community'
 import { useUserStore } from '@/stores/user'
 import { DIABETES_TYPE_LABELS, TREATMENT_PLAN_LABELS } from '@leimengyun/shared'
 
@@ -90,6 +128,53 @@ const postId = route.params.id as string
 const post = ref<any>(null)
 const myUserId = computed(() => userStore.userInfo?.id || '')
 const showActions = ref(false)
+const comments = ref<any[]>([])
+const commentsLoading = ref(false)
+const commentText = ref('')
+const replyTarget = ref<{ commentId: string; name: string; userId?: string } | null>(null)
+const commentInputRef = ref<HTMLInputElement>()
+
+async function loadComments() {
+  commentsLoading.value = true
+  try {
+    const res = (await getComments(postId)) as any
+    comments.value = res.list || []
+  } catch { /* */ }
+  finally { commentsLoading.value = false }
+}
+
+function startReply(comment: any, reply?: any) {
+  const name = reply ? reply.author.nickname : comment.author.nickname
+  const userId = reply ? reply.author.id : comment.author.id
+  replyTarget.value = { commentId: comment.id, name, userId }
+  commentInputRef.value?.focus()
+}
+
+async function submitComment() {
+  const text = commentText.value.trim()
+  if (!text) return
+  try {
+    const data: any = { content: text }
+    if (replyTarget.value) {
+      data.parentId = replyTarget.value.commentId
+      data.replyToUserId = replyTarget.value.userId
+    }
+    await createComment(postId, data)
+    commentText.value = ''
+    replyTarget.value = null
+    post.value.commentCount++
+    loadComments()
+  } catch (err: any) {
+    showFailToast(err.response?.data?.message || '评论失败')
+  }
+}
+
+async function likeComment(comment: any) {
+  try {
+    await toggleCommentLike(comment.id)
+    comment.likeCount = (comment.likeCount || 0) + 1
+  } catch { /* */ }
+}
 
 const actionOptions = computed(() => {
   if (post.value?.author?.id === myUserId.value) {
@@ -187,6 +272,7 @@ async function handleFollow() {
 onMounted(async () => {
   try {
     post.value = await getPostById(postId) as any
+    loadComments()
   } catch {
     showFailToast('帖子不存在')
     router.back()
@@ -219,8 +305,24 @@ onMounted(async () => {
 .post-action.collected { color: #FFB020; }
 .comments-section { padding: 16px; }
 .comments-title { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
-.comments-placeholder { padding: 20px; text-align: center; color: #969799; font-size: 13px; }
+.comment-item { display: flex; gap: 10px; padding: 12px 0; border-bottom: 1px solid #ebedf0; }
+.comment-item:last-child { border-bottom: none; }
+.comment-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; flex-shrink: 0; }
+.comment-body { flex: 1; min-width: 0; }
+.comment-author-name { font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 4px; }
+.type-tag { font-size: 10px; color: #1AAD6E; background: #E8F8F0; padding: 0 4px; border-radius: 2px; }
+.comment-text { font-size: 14px; color: #323233; margin-top: 4px; line-height: 1.5; }
+.comment-meta-row { display: flex; gap: 16px; margin-top: 6px; font-size: 12px; color: #969799; }
+.comment-like-btn, .comment-reply-btn { cursor: pointer; }
+.comment-reply-btn { color: #1AAD6E; }
+.comment-replies { background: #f7f8fa; border-radius: 8px; padding: 10px 12px; margin-top: 8px; }
+.reply-item { margin-bottom: 8px; font-size: 13px; line-height: 1.5; }
+.reply-item:last-child { margin-bottom: 0; }
+.reply-author { color: #1AAD6E; font-weight: 500; }
+.reply-text { color: #323233; }
+.view-more-replies { font-size: 12px; color: #1AAD6E; cursor: pointer; margin-top: 6px; }
 .comment-input-bar { display: flex; align-items: center; padding: 8px 12px; background: #fff; border-top: 1px solid #ebedf0; gap: 8px; flex-shrink: 0; }
+.comment-input-bar .send-btn:disabled { opacity: 0.5; }
 .comment-input { flex: 1; height: 36px; border: 1px solid #ebedf0; border-radius: 18px; padding: 0 14px; font-size: 14px; outline: none; background: #f7f8fa; }
 .send-btn { height: 36px; padding: 0 16px; border-radius: 18px; background: #1AAD6E; color: #fff; border: none; font-size: 14px; cursor: pointer; }
 .bs-diary-card { background: linear-gradient(135deg, #E8F8F0, #fff); border: 1px solid #d0ead9; border-radius: 10px; padding: 12px; }
