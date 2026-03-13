@@ -47,13 +47,15 @@
       <template v-if="results && !searching">
         <!-- Post results -->
         <template v-if="searchType === 'post'">
-          <PostCard
-            v-for="post in results.list"
-            :key="post.id"
-            :post="post"
-            @click="$router.push('/community/post/' + post.id)"
-          />
-          <van-empty v-if="!results.list.length" description="未找到相关帖子" />
+          <van-list v-model:loading="searchLoading" :finished="searchFinished" finished-text="" @load="loadMoreSearch">
+            <PostCard
+              v-for="post in results.list"
+              :key="post.id"
+              :post="post"
+              @click="$router.push('/community/post/' + post.id)"
+            />
+          </van-list>
+          <van-empty v-if="!searchLoading && !results.list?.length" description="未找到相关帖子" />
         </template>
 
         <!-- Topic results -->
@@ -101,6 +103,9 @@ const searchType = ref('post')
 const results = ref<any>(null)
 const searching = ref(false)
 const hotTopics = ref<any[]>([])
+const searchPage = ref(1)
+const searchFinished = ref(false)
+const searchLoading = ref(false)
 
 const HISTORY_KEY = 'community_search_history'
 const searchHistory = ref<string[]>([])
@@ -126,11 +131,30 @@ async function doSearch() {
   const kw = keyword.value.trim()
   if (!kw) return
   saveHistory(kw)
+  searchPage.value = 1
+  searchFinished.value = false
   searching.value = true
   try {
-    results.value = await searchCommunity({ keyword: kw, type: searchType.value }) as any
+    results.value = await searchCommunity({ keyword: kw, type: searchType.value, page: 1 }) as any
+    searchFinished.value = !(results.value as any)?.hasMore
+    searchPage.value = 2
   } catch { results.value = { list: [], total: 0 } }
   finally { searching.value = false }
+}
+
+async function loadMoreSearch() {
+  if (searchType.value !== 'post' || !keyword.value.trim()) {
+    searchFinished.value = true
+    return
+  }
+  searchLoading.value = true
+  try {
+    const res = await searchCommunity({ keyword: keyword.value.trim(), type: 'post', page: searchPage.value }) as any
+    results.value.list.push(...(res.list || []))
+    searchFinished.value = !res.hasMore
+    searchPage.value++
+  } catch { searchFinished.value = true }
+  finally { searchLoading.value = false }
 }
 
 onMounted(async () => {

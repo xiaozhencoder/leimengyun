@@ -77,9 +77,18 @@ onMounted(() => { if (props.show) loadHistory() })
 
 <style scoped>
 .checkin-popup { padding: 30px 20px; text-align: center; }
-.checkin-icon { font-size: 56px; }
-.checkin-title { font-size: 20px; font-weight: 700; color: #1AAD6E; margin-top: 12px; }
-.checkin-info { font-size: 14px; color: #646566; margin-top: 8px; }
+.checkin-icon { font-size: 56px; animation: bounceIn 0.6s ease; }
+.checkin-title { font-size: 20px; font-weight: 700; color: #1AAD6E; margin-top: 12px; animation: fadeInUp 0.4s ease 0.2s both; }
+.checkin-info { font-size: 14px; color: #646566; margin-top: 8px; animation: fadeInUp 0.4s ease 0.3s both; }
+@keyframes bounceIn {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes fadeInUp {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
 .checkin-bs-info { font-size: 13px; color: #969799; margin-top: 4px; }
 .checkin-calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin: 16px 0; text-align: center; }
 .cal-header { font-size: 11px; color: #969799; font-weight: 500; padding: 4px 0; }

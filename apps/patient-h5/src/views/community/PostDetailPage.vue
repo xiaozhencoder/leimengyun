@@ -75,8 +75,9 @@
               <div class="comment-text">{{ comment.content }}</div>
               <div class="comment-meta-row">
                 <span class="comment-time">{{ timeAgo(comment.createdAt) }}</span>
-                <span class="comment-like-btn" @click="likeComment(comment)">♡ {{ comment.likeCount || '' }}</span>
+                <span class="comment-like-btn" :class="{ 'comment-liked': comment._liked }" @click="likeComment(comment)">{{ comment._liked ? '❤' : '♡' }} {{ comment.likeCount || '' }}</span>
                 <span class="comment-reply-btn" @click="startReply(comment)">回复</span>
+                <span v-if="comment.author.id === myUserId" class="comment-delete-btn" @click="deleteCommentById(comment)">删除</span>
               </div>
               <div v-if="comment.replies?.length" class="comment-replies">
                 <div v-for="reply in comment.replies" :key="reply.id" class="reply-item">
@@ -117,7 +118,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast, showFailToast, showImagePreview, showConfirmDialog, showSuccessToast } from 'vant'
-import { getPostById, togglePostLike, togglePostCollect, toggleFollow, deletePost, getComments, createComment, toggleCommentLike } from '@/api/community'
+import { getPostById, togglePostLike, togglePostCollect, toggleFollow, deletePost, deleteComment, getComments, createComment, toggleCommentLike } from '@/api/community'
 import { useUserStore } from '@/stores/user'
 import { DIABETES_TYPE_LABELS, TREATMENT_PLAN_LABELS } from '@leimengyun/shared'
 
@@ -170,10 +171,25 @@ async function submitComment() {
 }
 
 async function likeComment(comment: any) {
+  const prevLiked = comment._liked || false
+  comment._liked = !prevLiked
+  comment.likeCount = (comment.likeCount || 0) + (prevLiked ? -1 : 1)
   try {
     await toggleCommentLike(comment.id)
-    comment.likeCount = (comment.likeCount || 0) + 1
-  } catch { /* */ }
+  } catch {
+    comment._liked = prevLiked
+    comment.likeCount = (comment.likeCount || 0) + (prevLiked ? 1 : -1)
+  }
+}
+
+async function deleteCommentById(comment: any) {
+  try {
+    await showConfirmDialog({ title: '删除评论', message: '确定删除这条评论？' })
+    await deleteComment(comment.id)
+    post.value.commentCount--
+    loadComments()
+    showSuccessToast('已删除')
+  } catch { /* cancelled or error */ }
 }
 
 const actionOptions = computed(() => {
@@ -314,6 +330,8 @@ onMounted(async () => {
 .comment-text { font-size: 14px; color: #323233; margin-top: 4px; line-height: 1.5; }
 .comment-meta-row { display: flex; gap: 16px; margin-top: 6px; font-size: 12px; color: #969799; }
 .comment-like-btn, .comment-reply-btn { cursor: pointer; }
+.comment-liked { color: #FF4D4F; }
+.comment-delete-btn { color: #FF4D4F; cursor: pointer; }
 .comment-reply-btn { color: #1AAD6E; }
 .comment-replies { background: #f7f8fa; border-radius: 8px; padding: 10px 12px; margin-top: 8px; }
 .reply-item { margin-bottom: 8px; font-size: 13px; line-height: 1.5; }
