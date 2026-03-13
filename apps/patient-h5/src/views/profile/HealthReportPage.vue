@@ -102,7 +102,7 @@ async function loadReport() {
     const inRangeRate = bsCount > 0 ? Math.round((inRange / bsCount) * 100) : 0
 
     const totalCarbs = dietList.reduce((s: number, r: any) => s + (r.raw?.totalCarbs || 0), 0)
-    const avgCarbs = dietList.length > 0 ? Math.round(totalCarbs / Math.min(days, dietList.length)) : ''
+    const avgCarbs = dietList.length > 0 ? Math.round(totalCarbs / days) : ''
 
     report.value = { bsCount, bsAvg, bsMax, bsMin, inRangeRate, dietCount: dietList.length, avgCarbs: String(avgCarbs), medCount: medList.length }
 

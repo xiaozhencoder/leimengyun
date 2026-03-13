@@ -15,7 +15,7 @@
               <div class="bs-card-body">
                 <div>
                   <div class="bs-card-time">{{ parseBsCard(msg.content)?.time || '' }}</div>
-                  <div :class="['bs-card-value', 'bs-' + getBsLevelClass(parseBsCard(msg.content)?.value || 0)]">
+                  <div :class="['bs-card-value', 'bs-' + getBsLevelClass(parseBsCard(msg.content)?.value || 0, parseBsCard(msg.content)?.measureTime)]">
                     {{ parseBsCard(msg.content)?.value }}
                     <span class="bs-card-unit">mmol/L</span>
                   </div>
@@ -107,7 +107,7 @@ import { useChatStore } from '@/stores/chat'
 import { getMessages, sendMessage, markRead, getConversations, uploadImage } from '@/api/chat'
 import { getBloodSugars } from '@/api/health'
 import { useNewMessage, useConversationUpdate } from '@/api/socket'
-import { MEASURE_TIME_LABELS } from '@leimengyun/shared'
+import { MEASURE_TIME_LABELS, isFastingMeasureTime } from '@leimengyun/shared'
 
 const route = useRoute()
 const userStore = useUserStore()
@@ -141,14 +141,10 @@ function formatTimeDivider(dateStr: string) {
   return `${d.getMonth() + 1}月${d.getDate()}日 ${formatMsgTime(dateStr)}`
 }
 
-function formatBsCardAsText(content: string): string {
-  const parsed = parseBsCard(content)
-  return parsed ? `${parsed.value} mmol/L ${parsed.time}` : String(content)
-}
-function parseBsCard(content: string): { value: number; time: string } | null {
+function parseBsCard(content: string): { value: number; time: string; measureTime?: string } | null {
   try {
     const o = JSON.parse(content)
-    if (o && typeof o.value === 'number') return { value: o.value, time: o.time || '' }
+    if (o && typeof o.value === 'number') return { value: o.value, time: o.time || '', measureTime: o.measureTime }
   } catch { /* ignore */ }
   return null
 }
@@ -259,8 +255,14 @@ async function handleSend() {
   }
 }
 
-function getBsLevelClass(value: number): string {
+function getBsLevelClass(value: number, measureTime?: string): string {
   if (value < 3.9) return 'low'
+  const fasting = measureTime ? isFastingMeasureTime(measureTime) : false
+  if (fasting) {
+    if (value <= 6.1) return 'normal'
+    if (value <= 7.0) return 'high'
+    return 'danger'
+  }
   if (value <= 7.8) return 'normal'
   if (value <= 11.1) return 'high'
   return 'danger'

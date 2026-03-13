@@ -25,7 +25,7 @@
               <div class="bs-card-body">
                 <div>
                   <div class="bs-card-time">{{ parseBsCard(msg.content)?.time || '' }}</div>
-                  <div :class="['bs-card-value', 'bs-color-' + getBsLevelClass(parseBsCard(msg.content)?.value || 0)]">
+                  <div :class="['bs-card-value', 'bs-color-' + getBsLevelClass(parseBsCard(msg.content)?.value || 0, parseBsCard(msg.content)?.measureTime)]">
                     {{ parseBsCard(msg.content)?.value }}
                     <span class="bs-card-unit">mmol/L</span>
                   </div>
@@ -80,7 +80,7 @@ import { useChatStore } from '@/stores/chat'
 import { getMessages, sendMessage, markRead, getConversations, uploadImage } from '@/api/chat'
 import { getPatientHealthData } from '@/api/patients'
 import { useNewMessage, useConversationUpdate } from '@/api/socket'
-import { MEASURE_TIME_LABELS } from '@leimengyun/shared'
+import { MEASURE_TIME_LABELS, isFastingMeasureTime } from '@leimengyun/shared'
 
 const route = useRoute()
 const router = useRouter()
@@ -117,12 +117,6 @@ function formatTimeDivider(dateStr: string) {
   return `${d.getMonth() + 1}月${d.getDate()}日 ${formatMsgTime(dateStr)}`
 }
 
-function getBsColor(v: number) {
-  if (v < 3.9) return '#3B82F6'
-  if (v <= 7.8) return '#1AAD6E'
-  if (v <= 11.1) return '#FFB020'
-  return '#FF4D4F'
-}
 
 function getBsStatus(value: number): { class: string; label: string } {
   if (value < 3.9) return { class: 'low', label: '偏低' }
@@ -142,19 +136,21 @@ function goToPatientDetail() {
   }
 }
 
-function formatBsCardAsText(content: string): string {
-  const parsed = parseBsCard(content)
-  return parsed ? `${parsed.value} mmol/L ${parsed.time}` : String(content)
-}
-function parseBsCard(content: string): { value: number; time: string } | null {
+function parseBsCard(content: string): { value: number; time: string; measureTime?: string } | null {
   try {
     const o = JSON.parse(content)
-    if (o && typeof o.value === 'number') return { value: o.value, time: o.time || '' }
+    if (o && typeof o.value === 'number') return { value: o.value, time: o.time || '', measureTime: o.measureTime }
   } catch { /* ignore */ }
   return null
 }
-function getBsLevelClass(value: number): string {
+function getBsLevelClass(value: number, measureTime?: string): string {
   if (value < 3.9) return 'low'
+  const fasting = measureTime ? isFastingMeasureTime(measureTime) : false
+  if (fasting) {
+    if (value <= 6.1) return 'normal'
+    if (value <= 7.0) return 'high'
+    return 'danger'
+  }
   if (value <= 7.8) return 'normal'
   if (value <= 11.1) return 'high'
   return 'danger'

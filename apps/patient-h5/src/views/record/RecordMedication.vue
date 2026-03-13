@@ -41,7 +41,7 @@
     </van-cell-group>
 
     <van-cell-group inset style="margin-top: 12px">
-      <van-field v-model="note" label="备注" type="textarea" placeholder="可选" rows="2" maxlength="200" />
+      <van-field v-model="note" label="备注" type="textarea" placeholder="可选" rows="2" maxlength="200" show-word-limit />
     </van-cell-group>
 
     <van-cell-group inset style="margin-top: 12px">
