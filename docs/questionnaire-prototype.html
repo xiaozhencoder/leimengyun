@@ -1,0 +1,2076 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>雷檬云 — 问卷管理 UI 原型</title>
+<style>
+  :root {
+    --primary: #1AAD6E;
+    --primary-light: #E8F8F0;
+    --blue: #3B82F6;
+    --blue-light: #E8F0FE;
+    --orange: #FFB020;
+    --orange-light: #FFF8E6;
+    --red: #FF4D4F;
+    --red-light: #FFF1F0;
+    --bg: #F7F8FA;
+    --white: #FFFFFF;
+    --text: #1A1A1A;
+    --text-secondary: #666666;
+    --text-hint: #999999;
+    --border: #EBEDF0;
+    --shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+    background: #1a1a2e;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  .page-title {
+    color: #fff;
+    font-size: 28px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .page-subtitle {
+    color: #888;
+    font-size: 14px;
+    text-align: center;
+    margin-bottom: 30px;
+  }
+
+  .role-tabs {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .role-tab {
+    padding: 10px 28px;
+    border-radius: 24px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.3s;
+  }
+  .role-tab.active-doctor {
+    background: var(--blue);
+    color: #fff;
+  }
+  .role-tab.active-patient {
+    background: var(--primary);
+    color: #fff;
+  }
+  .role-tab:not(.active-doctor):not(.active-patient) {
+    background: rgba(255,255,255,0.1);
+    color: #aaa;
+  }
+
+  .screens-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    justify-content: center;
+    max-width: 1400px;
+  }
+
+  .screen-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: transform 0.3s;
+  }
+  .screen-wrapper:hover { transform: translateY(-4px); }
+
+  .screen-label {
+    color: #ccc;
+    font-size: 13px;
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .screen-sublabel {
+    color: #777;
+    font-size: 11px;
+    margin-bottom: 12px;
+  }
+
+  .phone-frame {
+    width: 375px;
+    height: 720px;
+    background: var(--bg);
+    border-radius: 32px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+    border: 3px solid #333;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Status bar */
+  .status-bar {
+    height: 44px;
+    background: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px;
+    font-size: 14px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  /* Nav bar */
+  .nav-bar {
+    height: 48px;
+    background: var(--white);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .nav-back {
+    font-size: 20px;
+    color: var(--text);
+    cursor: pointer;
+    width: 32px;
+  }
+  .nav-title {
+    flex: 1;
+    text-align: center;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+    margin-right: 32px;
+  }
+  .nav-action {
+    font-size: 15px;
+    color: var(--blue);
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .nav-action.green { color: var(--primary); }
+
+  /* Content */
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 16px;
+  }
+  .content::-webkit-scrollbar { display: none; }
+
+  /* Tab bar */
+  .tab-bar-inner {
+    display: flex;
+    background: var(--white);
+    border-top: 1px solid var(--border);
+    padding: 4px 0;
+    flex-shrink: 0;
+  }
+  .tab-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 10px;
+    color: var(--text-hint);
+    gap: 2px;
+  }
+  .tab-item.active { color: var(--primary); }
+  .tab-icon { font-size: 20px; }
+
+  /* Segment tabs */
+  .segment-tabs {
+    display: flex;
+    background: var(--white);
+    border-radius: 8px;
+    padding: 4px;
+    margin-bottom: 12px;
+  }
+  .segment-tab {
+    flex: 1;
+    text-align: center;
+    padding: 8px 0;
+    font-size: 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.3s;
+  }
+  .segment-tab.active {
+    background: var(--primary);
+    color: #fff;
+    font-weight: 600;
+  }
+  .segment-tab.active-blue {
+    background: var(--blue);
+    color: #fff;
+    font-weight: 600;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+  }
+
+  /* Stats row */
+  .stats-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .stat-box {
+    flex: 1;
+    background: var(--white);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+    box-shadow: var(--shadow);
+  }
+  .stat-num {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .stat-num.blue { color: var(--blue); }
+  .stat-num.green { color: var(--primary); }
+  .stat-num.orange { color: var(--orange); }
+  .stat-label {
+    font-size: 11px;
+    color: var(--text-hint);
+    margin-top: 4px;
+  }
+
+  /* Category filter */
+  .category-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .category-chip {
+    padding: 6px 14px;
+    border-radius: 16px;
+    font-size: 12px;
+    background: var(--white);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .category-chip.active {
+    background: var(--blue-light);
+    color: var(--blue);
+    border-color: var(--blue);
+    font-weight: 500;
+  }
+
+  /* Template card */
+  .tpl-card {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .tpl-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+  .tpl-info { flex: 1; }
+  .tpl-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .tpl-desc {
+    font-size: 12px;
+    color: var(--text-hint);
+    margin-bottom: 8px;
+    line-height: 1.5;
+  }
+  .tpl-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .tpl-tags {
+    display: flex;
+    gap: 8px;
+  }
+  .tpl-tag {
+    font-size: 11px;
+    color: var(--text-hint);
+    background: var(--bg);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  .tpl-btn {
+    padding: 6px 16px;
+    border-radius: 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #fff;
+    background: var(--blue);
+    border: none;
+    cursor: pointer;
+  }
+  .tpl-btn.green { background: var(--primary); }
+
+  /* Assignment card */
+  .assign-card {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+  }
+  .assign-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .assign-title {
+    font-size: 15px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .status-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+  .status-badge.completed { background: #E8F8F0; color: var(--primary); }
+  .status-badge.pending { background: var(--blue-light); color: var(--blue); }
+  .status-badge.expired { background: #F5F5F5; color: #999; }
+  .assign-patient {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+  }
+  .assign-date {
+    font-size: 12px;
+    color: var(--text-hint);
+    margin-bottom: 8px;
+  }
+  .assign-score {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary);
+  }
+  .assign-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .action-btn {
+    padding: 6px 14px;
+    border-radius: 16px;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    background: var(--white);
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+  .action-btn.primary {
+    background: var(--blue);
+    color: #fff;
+    border: none;
+  }
+
+  /* Send questionnaire page */
+  .form-section {
+    margin-bottom: 16px;
+  }
+  .form-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .form-hint {
+    font-size: 12px;
+    color: var(--text-hint);
+    margin-bottom: 8px;
+  }
+
+  .selected-tpl {
+    background: var(--blue-light);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+  .selected-tpl-icon {
+    font-size: 28px;
+  }
+  .selected-tpl-info { flex: 1; }
+  .selected-tpl-title { font-size: 14px; font-weight: 600; color: var(--blue); }
+  .selected-tpl-meta { font-size: 12px; color: #6B8DD6; margin-top: 2px; }
+  .preview-link { font-size: 12px; color: var(--blue); text-decoration: underline; cursor: pointer; }
+
+  /* Patient selector */
+  .patient-list { margin-top: 8px; }
+  .patient-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    background: var(--white);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+    gap: 12px;
+  }
+  .patient-item.selected { border-color: var(--primary); background: var(--primary-light); }
+  .checkbox {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: 2px solid #D0D0D0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .checkbox.checked {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    font-size: 13px;
+  }
+  .patient-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #a8edea, #fed6e3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .patient-name { font-size: 14px; font-weight: 500; color: var(--text); }
+  .patient-type { font-size: 12px; color: var(--text-hint); margin-top: 2px; }
+
+  /* Date input */
+  .form-input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    font-size: 14px;
+    color: var(--text);
+    background: var(--white);
+    outline: none;
+  }
+  .form-input:focus { border-color: var(--blue); }
+  .form-textarea {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    font-size: 14px;
+    color: var(--text);
+    min-height: 80px;
+    resize: none;
+    outline: none;
+    font-family: inherit;
+  }
+  .form-textarea:focus { border-color: var(--blue); }
+  .char-count {
+    text-align: right;
+    font-size: 11px;
+    color: var(--text-hint);
+    margin-top: 4px;
+  }
+
+  /* Result page */
+  .score-circle {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    margin: 20px auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .score-circle::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 8px solid var(--border);
+  }
+  .score-circle::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 8px solid transparent;
+    border-top-color: var(--blue);
+    border-right-color: var(--blue);
+    border-bottom-color: var(--blue);
+    transform: rotate(-30deg);
+  }
+  .score-circle.green::after { border-top-color: var(--primary); border-right-color: var(--primary); border-bottom-color: var(--primary); }
+  .score-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text);
+    z-index: 1;
+  }
+  .score-total {
+    font-size: 13px;
+    color: var(--text-hint);
+    z-index: 1;
+  }
+  .score-level {
+    text-align: center;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 20px;
+  }
+  .score-level.good { color: var(--blue); }
+  .score-level.great { color: var(--primary); }
+
+  /* Dimension bars */
+  .dim-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    gap: 8px;
+  }
+  .dim-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    width: 64px;
+    flex-shrink: 0;
+  }
+  .dim-bar-bg {
+    flex: 1;
+    height: 12px;
+    background: var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .dim-bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 1s ease;
+  }
+  .dim-bar-fill.blue { background: linear-gradient(90deg, #60A5FA, var(--blue)); }
+  .dim-bar-fill.green { background: linear-gradient(90deg, #6EE7B7, var(--primary)); }
+  .dim-bar-fill.orange { background: linear-gradient(90deg, #FCD34D, var(--orange)); }
+  .dim-score {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    width: 28px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* Doctor note */
+  .doctor-note {
+    background: var(--orange-light);
+    border-radius: 12px;
+    padding: 14px;
+    margin-top: 12px;
+  }
+  .note-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .note-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #60A5FA, #3B82F6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #fff;
+  }
+  .note-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .note-date { font-size: 11px; color: var(--text-hint); }
+  .note-content {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  /* Question fill */
+  .progress-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6EE7B7, var(--primary));
+    border-radius: 2px;
+    transition: width 0.5s;
+  }
+  .q-number {
+    font-size: 14px;
+    color: var(--blue);
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .q-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.5;
+    margin-bottom: 24px;
+  }
+  .q-options { display: flex; flex-direction: column; gap: 10px; }
+  .q-option {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    font-size: 15px;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s;
+    gap: 12px;
+  }
+  .q-option:hover { border-color: #B0D0FF; background: #F8FAFF; }
+  .q-option.selected {
+    border-color: var(--primary);
+    background: var(--primary-light);
+  }
+  .q-radio {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid #D0D0D0;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .q-option.selected .q-radio {
+    border-color: var(--primary);
+  }
+  .q-radio-inner {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--primary);
+    display: none;
+  }
+  .q-option.selected .q-radio-inner { display: block; }
+
+  /* Rating */
+  .rating-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 8px;
+    margin-bottom: 8px;
+  }
+  .rating-dot {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .rating-dot.selected {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+  .rating-labels {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 8px;
+  }
+  .rating-label-text { font-size: 11px; color: var(--text-hint); }
+
+  /* Bottom buttons */
+  .bottom-btns {
+    display: flex;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--white);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .btn-secondary {
+    flex: 1;
+    padding: 12px;
+    border-radius: 24px;
+    font-size: 15px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    background: var(--white);
+    color: var(--text-secondary);
+    cursor: pointer;
+    text-align: center;
+  }
+  .btn-primary {
+    flex: 1;
+    padding: 12px;
+    border-radius: 24px;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    background: linear-gradient(135deg, #22C77E, var(--primary));
+    color: #fff;
+    cursor: pointer;
+    text-align: center;
+  }
+  .btn-primary.blue { background: linear-gradient(135deg, #60A5FA, var(--blue)); }
+  .btn-full {
+    width: 100%;
+    padding: 14px;
+    border-radius: 24px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    background: linear-gradient(135deg, #60A5FA, var(--blue));
+    color: #fff;
+    cursor: pointer;
+    margin-top: 12px;
+  }
+  .btn-full.green { background: linear-gradient(135deg, #22C77E, var(--primary)); }
+
+  /* Notification card */
+  .notif-card {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow);
+    border-left: 4px solid var(--blue);
+  }
+  .notif-card.result { border-left-color: var(--primary); }
+  .notif-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .notif-body {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+  .notif-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .notif-time { font-size: 11px; color: var(--text-hint); }
+  .notif-btn {
+    font-size: 12px;
+    color: var(--blue);
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .notif-btn.green { color: var(--primary); }
+
+  /* Patient detail questionnaire tab */
+  .overview-card {
+    background: linear-gradient(135deg, #EFF6FF, #E0F2FE);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .overview-title {
+    font-size: 13px;
+    color: var(--blue);
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .overview-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+  }
+  .overview-name { font-size: 13px; color: var(--text); }
+  .overview-score { font-size: 14px; font-weight: 600; }
+  .overview-score.green { color: var(--primary); }
+  .overview-score.blue { color: var(--blue); }
+  .overview-change {
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 8px;
+  }
+  .overview-change.up { color: var(--primary); background: var(--primary-light); }
+  .overview-change.same { color: var(--text-hint); background: #F5F5F5; }
+
+  /* Trend chart placeholder */
+  .trend-chart {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+  }
+  .trend-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+  .trend-svg { width: 100%; }
+
+  /* Submit confirm */
+  .confirm-icon {
+    text-align: center;
+    font-size: 64px;
+    margin: 30px 0 16px;
+  }
+  .confirm-text {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .confirm-sub {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-hint);
+    margin-bottom: 24px;
+  }
+
+  /* Answer review */
+  .answer-item {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .answer-item:last-child { border-bottom: none; }
+  .answer-q {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+  }
+  .answer-a {
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .answer-score {
+    font-size: 12px;
+    color: var(--primary);
+    background: var(--primary-light);
+    padding: 1px 8px;
+    border-radius: 8px;
+  }
+
+  /* Health data association */
+  .health-card {
+    background: linear-gradient(135deg, #E8F8F0, #D1FAE5);
+    border-radius: 12px;
+    padding: 14px;
+    margin-top: 12px;
+  }
+  .health-title {
+    font-size: 13px;
+    color: var(--primary);
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .health-stats {
+    display: flex;
+    gap: 16px;
+  }
+  .health-stat-item { text-align: center; }
+  .health-stat-val { font-size: 20px; font-weight: 700; color: var(--text); }
+  .health-stat-label { font-size: 11px; color: var(--text-hint); margin-top: 2px; }
+
+  /* Multi-choice checkbox style */
+  .q-checkbox {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 2px solid #D0D0D0;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
+  .q-option.selected .q-checkbox {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: #fff;
+  }
+
+  /* Floating action button */
+  .fab {
+    position: absolute;
+    bottom: 70px;
+    right: 20px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #60A5FA, var(--blue));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    box-shadow: 0 4px 16px rgba(59,130,246,0.4);
+    cursor: pointer;
+    z-index: 10;
+  }
+
+  /* Responsive */
+  @media (max-width: 480px) {
+    .phone-frame { width: 100%; height: 85vh; border-radius: 0; border: none; }
+    .screens-container { gap: 16px; }
+    body { padding: 10px; }
+  }
+
+  /* Section header */
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    margin-top: 4px;
+  }
+  .section-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .section-more {
+    font-size: 12px;
+    color: var(--blue);
+    cursor: pointer;
+  }
+
+  /* Profile menu item */
+  .menu-item {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    background: var(--white);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    gap: 12px;
+    box-shadow: var(--shadow);
+  }
+  .menu-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .menu-text { flex: 1; font-size: 14px; color: var(--text); font-weight: 500; }
+  .menu-badge {
+    background: var(--red);
+    color: #fff;
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .menu-arrow { color: var(--text-hint); font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div class="page-title">🍋 雷檬云 · 问卷管理</div>
+<div class="page-subtitle">UI 原型设计 — 医生端 + 患者端完整交互流程</div>
+
+<!-- ==================== 医生端 ==================== -->
+<div class="role-tabs">
+  <div class="role-tab active-doctor">👨‍⚕️ 医生端</div>
+</div>
+
+<div class="screens-container">
+
+<!-- Screen 1: 医生端 我的页 - 问卷入口 -->
+<div class="screen-wrapper">
+  <div class="screen-label">1. 我的 — 问卷管理入口</div>
+  <div class="phone-frame">
+    <div class="status-bar">16:12</div>
+    <div class="nav-bar">
+      <div class="nav-back"></div>
+      <div class="nav-title">我的</div>
+    </div>
+    <div class="content">
+      <!-- Doctor profile header -->
+      <div class="card" style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+        <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#60A5FA,#3B82F6);display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;flex-shrink:0;">👨‍⚕️</div>
+        <div>
+          <div style="font-size:17px;font-weight:700;color:var(--text);">李明华</div>
+          <div style="font-size:12px;color:var(--text-hint);margin-top:2px;">北京协和医院 · 内分泌科</div>
+          <div style="font-size:11px;color:var(--blue);margin-top:4px;display:flex;align-items:center;gap:4px;">✓ 已认证 · 主任医师</div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">常用功能</div>
+      </div>
+
+      <div class="menu-item">
+        <div class="menu-icon" style="background:var(--blue-light);color:var(--blue);">📋</div>
+        <div class="menu-text">问卷管理</div>
+        <div class="menu-badge">3</div>
+        <div class="menu-arrow">›</div>
+      </div>
+
+      <div class="menu-item">
+        <div class="menu-icon" style="background:var(--primary-light);color:var(--primary);">👥</div>
+        <div class="menu-text">患者管理</div>
+        <div class="menu-arrow">›</div>
+      </div>
+
+      <div class="menu-item">
+        <div class="menu-icon" style="background:var(--orange-light);color:var(--orange);">📊</div>
+        <div class="menu-text">数据统计</div>
+        <div class="menu-arrow">›</div>
+      </div>
+
+      <div style="height:16px;"></div>
+      <div class="section-header">
+        <div class="section-title">设置</div>
+      </div>
+
+      <div class="menu-item">
+        <div class="menu-icon" style="background:#F5F5F5;color:#666;">👤</div>
+        <div class="menu-text">医生信息</div>
+        <div class="menu-arrow">›</div>
+      </div>
+
+      <div class="menu-item">
+        <div class="menu-icon" style="background:#F5F5F5;color:#666;">⚙️</div>
+        <div class="menu-text">设置</div>
+        <div class="menu-arrow">›</div>
+      </div>
+
+      <div class="menu-item">
+        <div class="menu-icon" style="background:#F5F5F5;color:#666;">❓</div>
+        <div class="menu-text">帮助</div>
+        <div class="menu-arrow">›</div>
+      </div>
+    </div>
+    <div class="tab-bar-inner">
+      <div class="tab-item"><div class="tab-icon">👥</div>患者</div>
+      <div class="tab-item"><div class="tab-icon">🌐</div>社区</div>
+      <div class="tab-item"><div class="tab-icon">💬</div>消息</div>
+      <div class="tab-item active"><div class="tab-icon">👤</div>我的</div>
+    </div>
+  </div>
+</div>
+
+<!-- Screen 2: 问卷中心-模板库 -->
+<div class="screen-wrapper">
+  <div class="screen-label">2. 问卷中心 — 模板库</div>
+  <div class="phone-frame">
+    <div class="status-bar">16:12</div>
+    <div class="nav-bar">
+      <div class="nav-back">‹</div>
+      <div class="nav-title">问卷管理</div>
+    </div>
+    <div class="content">
+      <div class="segment-tabs">
+        <div class="segment-tab active-blue">模板库</div>
+        <div class="segment-tab">已发送</div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-num blue">45</div>
+          <div class="stat-label">已发送</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num orange">5</div>
+          <div class="stat-label">待填写</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num green">38</div>
+          <div class="stat-label">已完成</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num" style="color:var(--primary);">84%</div>
+          <div class="stat-label">完成率</div>
+        </div>
+      </div>
+
+      <div class="category-filter">
+        <div class="category-chip active">全部</div>
+        <div class="category-chip">血糖</div>
+        <div class="category-chip">饮食</div>
+        <div class="category-chip">运动</div>
+        <div class="category-chip">用药</div>
+        <div class="category-chip">生活质量</div>
+        <div class="category-chip">低血糖</div>
+        <div class="category-chip">足部</div>
+        <div class="category-chip">心理</div>
+      </div>
+
+      <div class="tpl-card">
+        <div class="tpl-icon" style="background:var(--blue-light);">📊</div>
+        <div class="tpl-info">
+          <div class="tpl-title">血糖自我管理评估</div>
+          <div class="tpl-desc">基于SDSCA量表，评估患者血糖监测与自我管理行为</div>
+          <div class="tpl-meta">
+            <div class="tpl-tags">
+              <div class="tpl-tag">10题</div>
+              <div class="tpl-tag">约5分钟</div>
+            </div>
+            <button class="tpl-btn">发送</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tpl-card">
+        <div class="tpl-icon" style="background:#FFF3E0;">🍱</div>
+        <div class="tpl-info">
+          <div class="tpl-title">饮食管理评估</div>
+          <div class="tpl-desc">评估患者饮食控制行为和碳水化合物管理能力</div>
+          <div class="tpl-meta">
+            <div class="tpl-tags">
+              <div class="tpl-tag">8题</div>
+              <div class="tpl-tag">约4分钟</div>
+            </div>
+            <button class="tpl-btn">发送</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tpl-card">
+        <div class="tpl-icon" style="background:#E8F5E9;">🏃</div>
+        <div class="tpl-info">
+          <div class="tpl-title">运动管理评估</div>
+          <div class="tpl-desc">评估患者运动锻炼行为及运动安全意识</div>
+          <div class="tpl-meta">
+            <div class="tpl-tags">
+              <div class="tpl-tag">6题</div>
+              <div class="tpl-tag">约3分钟</div>
+            </div>
+            <button class="tpl-btn">发送</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tpl-card">
+        <div class="tpl-icon" style="background:#F3E5F5;">💊</div>
+        <div class="tpl-info">
+          <div class="tpl-title">用药依从性评估</div>
+          <div class="tpl-desc">评估患者用药规范程度和药物认知水平</div>
+          <div class="tpl-meta">
+            <div class="tpl-tags">
+              <div class="tpl-tag">8题</div>
+              <div class="tpl-tag">约4分钟</div>
+            </div>
+            <button class="tpl-btn">发送</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tpl-card">
+        <div class="tpl-icon" style="background:#FFF8E1;">🧠</div>
+        <div class="tpl-info">
+          <div class="tpl-title">心理状态评估</div>
+          <div class="tpl-desc">基于PAID量表，评估患者糖尿病相关心理困扰</div>
+          <div class="tpl-meta">
+            <div class="tpl-tags">
+              <div class="tpl-tag">10题</div>
+              <div class="tpl-tag">约5分钟</div>
+            </div>
+            <button class="tpl-btn">发送</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Screen 3: 问卷中心-已发送 -->
+<div class="screen-wrapper">
+  <div class="screen-label">3. 问卷中心 — 已发送</div>
+  <div class="phone-frame">
+    <div class="status-bar">16:12</div>
+    <div class="nav-bar">
+      <div class="nav-back">‹</div>
+      <div class="nav-title">问卷管理</div>
+    </div>
+    <div class="content">
+      <div class="segment-tabs">
+        <div class="segment-tab">模板库</div>
+        <div class="segment-tab active-blue">已发送</div>
+      </div>
+
+      <div class="category-filter">
+        <div class="category-chip active">全部</div>
+        <div class="category-chip">待填写</div>
+        <div class="category-chip">已完成</div>
+        <div class="category-chip">已过期</div>
+      </div>
+
+      <div class="assign-card">
+        <div class="assign-header">
+          <div class="assign-title">📊 血糖自我管理评估</div>
+          <div class="status-badge completed">✓ 已完成</div>
+        </div>
+        <div class="assign-patient">→ 测试患者</div>
+        <div class="assign-date">发送于 2026-03-13 10:00 · 截止 03-20</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div class="assign-score">得分 35/49（71%）</div>
+          <button class="action-btn primary">查看结果</button>
+        </div>
+      </div>
+
+      <div class="assign-card">
+        <div class="assign-header">
+          <div class="assign-title">🍱 饮食管理评估</div>
+          <div class="status-badge completed">✓ 已完成</div>
+        </div>
+        <div class="assign-patient">→ 张三</div>
+        <div class="assign-date">发送于 2026-03-10 09:30 · 截止 03-17</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div class="assign-score">得分 28/36（78%）</div>
+          <button class="action-btn primary">查看结果</button>
+        </div>
+      </div>
+
+      <div class="assign-card">
+        <div class="assign-header">
+          <div class="assign-title">💊 用药依从性评估</div>
+          <div class="status-badge pending">⏳ 待填写</div>
+        </div>
+        <div class="assign-patient">→ 李四</div>
+        <div class="assign-date">发送于 2026-03-12 14:30 · 截止 03-19</div>
+        <div class="assign-actions">
+          <button class="action-btn">提醒</button>
+          <button class="action-btn">取消</button>
+        </div>
+      </div>
+
+      <div class="assign-card">
+        <div class="assign-header">
+          <div class="assign-title">🧠 心理状态评估</div>
+          <div class="status-badge pending">⏳ 待填写</div>
+        </div>
+        <div class="assign-patient">→ 王五</div>
+        <div class="assign-date">发送于 2026-03-13 08:00 · 截止 03-27</div>
+        <div class="assign-actions">
+          <button class="action-btn">提醒</button>
+          <button class="action-btn">取消</button>
+        </div>
+      </div>
+
+      <div class="assign-card">
+        <div class="assign-header">
+          <div class="assign-title">🏃 运动管理评估</div>
+          <div class="status-badge expired">已过期</div>
+        </div>
+        <div class="assign-patient">→ 赵六</div>
+        <div class="assign-date">发送于 2026-02-28 16:00 · 已于 03-07 过期</div>
+        <div class="assign-actions">
+          <button class="action-btn primary">重新发送</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Screen 4: 发送问卷 -->
+<div class="screen-wrapper">
+  <div class="screen-label">4. 发送问卷</div>
+  <div class="phone-frame">
+    <div class="status-bar">16:12</div>
+    <div class="nav-bar">
+      <div class="nav-back">‹</div>
+      <div class="nav-title">发送问卷</div>
+    </div>
+    <div class="content">
+      <div class="form-section">
+        <div class="form-label">选择问卷</div>
+        <div class="selected-tpl">
+          <div class="selected-tpl-icon">📊</div>
+          <div class="selected-tpl-info">
+            <div class="selected-tpl-title">血糖自我管理评估</div>
+            <div class="selected-tpl-meta">10题 · 约5分钟 · 满分49分</div>
+          </div>
+          <div class="preview-link">预览</div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-label">选择患者</div>
+        <div class="form-hint">从已绑定患者中选择（已选 2 位）</div>
+        <div class="patient-list">
+          <div class="patient-item selected">
+            <div class="checkbox checked">✓</div>
+            <div class="patient-avatar">🧑</div>
+            <div>
+              <div class="patient-name">测试患者</div>
+              <div class="patient-type">1型 · 胰岛素泵(CSII)</div>
+            </div>
+          </div>
+          <div class="patient-item">
+            <div class="checkbox"></div>
+            <div class="patient-avatar">👨</div>
+            <div>
+              <div class="patient-name">张三</div>
+              <div class="patient-type">2型 · 口服药物</div>
+            </div>
+          </div>
+          <div class="patient-item selected">
+            <div class="checkbox checked">✓</div>
+            <div class="patient-avatar">👩</div>
+            <div>
+              <div class="patient-name">王五</div>
+              <div class="patient-type">2型 · 生活方式管理</div>
+            </div>
+          </div>
+          <div class="patient-item">
+            <div class="checkbox"></div>
+            <div class="patient-avatar">🧓</div>
+            <div>
+              <div class="patient-name">李四</div>
+              <div class="patient-type">1型 · 多次注射(MDI)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-label">截止时间</div>
+        <input class="form-input" type="text" value="2026-03-20  23:59" readonly>
+      </div>
+
+      <div class="form-section">
+        <div class="form-label">附言（选填）</div>
+        <textarea class="form-textarea" placeholder="给患者的留言...">请您填写本周的血糖管理评估问卷，帮助我了解您近期的控糖情况。</textarea>
+        <div class="char-count">38/200</div>
+      </div>
+    </div>
+    <div class="bottom-btns">
+      <button class="btn-primary blue" style="flex:1;">确认发送（2位患者）</button>
+    </div>
+  </div>
+</div>
+
+<!-- Screen 5: 问卷结果详情 (医生视角) -->
+<div class="screen-wrapper">
+  <div class="screen-label">5. 问卷结果详情（医生视角）</div>
+  <div class="phone-frame">
+    <div class="status-bar">16:12</div>
+    <div class="nav-bar">
+      <div class="nav-back">‹</div>
+      <div class="nav-title">问卷结果</div>
+    </div>
+    <div class="content">
+      <div style="text-align:center;margin-bottom:4px;">
+        <div style="font-size:15px;font-weight:600;color:var(--text);">📊 血糖自我管理评估</div>
+        <div style="font-size:12px;color:var(--text-hint);margin-top:4px;">患者：测试患者 · 提交于 2026-03-13 · 用时 3分12秒</div>
+      </div>
+
+      <div class="score-circle green">
+        <div class="score-value">35</div>
+        <div class="score-total">/49</div>
+      </div>
+      <div class="score-level good" style="color:var(--blue);">71.4% · 良好</div>
+
+      <div class="card">
+        <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px;">维度得分</div>
+        <div class="dim-item">
+          <div class="dim-label">血糖监测</div>
+          <div class="dim-bar-bg"><div class="dim-bar-fill blue" style="width:76%;"></div></div>
+          <div class="dim-score">19</div>
+        </div>
+        <div class="dim-item">
+          <div class="dim-label">自我认知</div>
+          <div class="dim-bar-bg"><div class="dim-bar-fill green" style="width:80%;"></div></div>
+          <div class="dim-score">4</div>
+        </div>
+        <div class="dim-item">
+          <div class="dim-label">行为管理</div>
+          <div class="dim-bar-bg"><div class="dim-bar-fill orange" style="width:60%;"></div></div>
+          <div class="dim-score">12</div>
+        </div>
+      </div>
+
+      <!-- Trend chart -->
+      <div class="trend-chart">
+        <div class="trend-title">评分趋势（同类问卷）</div>
+        <svg class="trend-svg" viewBox="0 0 300 100" style="height:80px;">
+          <line x1="40" y1="80" x2="260" y2="80" stroke="#EBEDF0" stroke-width="1"/>
+          <line x1="40" y1="50" x2="260" y2="50" stroke="#EBEDF0" stroke-width="1" stroke-dasharray="4"/>
+          <line x1="40" y1="20" x2="260" y2="20" stroke="#EBEDF0" stroke-width="1" stroke-dasharray="4"/>
+          <polyline points="80,60 180,45 260,35" fill="none" stroke="#3B82F6" stroke-width="2.5"/>
+          <circle cx="80" cy="60" r="4" fill="#3B82F6"/>
+          <circle cx="180" cy="45" r="4" fill="#3B82F6"/>
+          <circle cx="260" cy="35" r="4" fill="#3B82F6"/>
+          <text x="80" y="74" fill="#999" font-size="9" text-anchor="middle">1/15</text>
+          <text x="180" y="74" fill="#999" font-size="9" text-anchor="middle">2/15</text>
+          <text x="260" y="74" fill="#999" font-size="9" text-anchor="middle">3/13</text>
+          <text x="80" y="56" fill="#3B82F6" font-size="9" text-anchor="middle">22</text>
+          <text x="180" y="41" fill="#3B82F6" font-size="9" text-anchor="middle">28</text>
+          <text x="260" y="31" fill="#3B82F6" font-size="9" text-anchor="middle">35</text>
+          <text x="20" y="84" fill="#999" font-size="8">0</text>
+          <text x="20" y="54" fill="#999" font-size="8">25</text>
+          <text x="20" y="24" fill="#999" font-size="8">49</text>
+        </svg>
+      </div>
+
+      <div class="card">
+        <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:10px;">详细答案</div>
+        <div class="answer-item">
+          <div class="answer-q">Q1. 过去一周，您进行血糖监测的天数是？</div>
+          <div class="answer-a">✅ 5天 <span class="answer-score">+5分</span></div>
+        </div>
+        <div class="answer-item">
+          <div class="answer-q">Q2. 完成医生建议的每日血糖监测次数的天数是？</div>
+          <div class="answer-a">✅ 4天 <span class="answer-score">+4分</span></div>
+        </div>
+        <div class="answer-item">
+          <div class="answer-q">Q5. 发现血糖异常时，通常怎么做？</div>
+          <div class="answer-a">☑ 自行调整饮食 · ☑ 记录并等待复诊</div>
+        </div>
+        <div class="answer-item">
+          <div class="answer-q">Q9. 血糖监测中遇到的最大困难？</div>
+          <div class="answer-a">☑ 忘记测量 · ☑ 试纸费用高</div>
+        </div>
+        <div class="answer-item">
+          <div class="answer-q">Q10. 希望医生给什么帮助？</div>
+          <div class="answer-a" style="font-style:italic;color:var(--text-secondary);">"希望能推荐性价比高的血糖仪和试纸"</div>
+        </div>
+      </div>
+
+      <div class="health-card">
+        <div class="health-title">📈 关联健康数据（近7天）</div>
+        <div class="health-stats">
+          <div class="health-stat-item">
+            <div class="health-stat-val">6.8</div>
+            <div class="health-stat-label">均值</div>
+          </div>
+          <div class="health-stat-item">
+            <div class="health-stat-val">15</div>
+            <div class="health-stat-label">记录次数</div>
+          </div>
+          <div class="health-stat-item">
+            <div class="health-stat-val">73%</div>
+            <div class="health-stat-label">达标率</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:10px;">📝 医生批注</div>
+        <textarea class="form-textarea" style="min-height:60px;">血糖监测频率还需要提高，建议每天至少测3次。患者反映试纸费用高，建议使用平台推荐的高性价比血糖仪。饮食方面需要加强碳水计数学习。</textarea>
+        <div style="text-align:right;margin-top:8px;">
+          <button class="tpl-btn" style="background:var(--primary);">保存批注</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Screen 6: 患者详情-问卷Tab -->
+<div class="screen-wrapper">
+  <div class="screen-label">6. 患者详情 — 问卷 Tab</div>
+  <div class="phone-frame">
+    <div class="status-bar">16:12</div>
+    <div class="nav-bar">
+      <div class="nav-back">‹</div>
+      <div class="nav-title">患者详情</div>
+    </div>
+    <div class="content">
+      <!-- Patient header -->
+      <div class="card" style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#a8edea,#fed6e3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🧑</div>
+        <div>
+          <div style="font-size:16px;font-weight:600;">测试患者</div>
+          <div style="font-size:12px;color:var(--text-hint);margin-top:2px;">1型 · 胰岛素泵 · 已管理128天</div>
+        </div>
+        <button class="tpl-btn" style="background:var(--primary);font-size:12px;">💬 发消息</button>
+      </div>
+
+      <!-- Tabs -->
+      <div style="display:flex;background:var(--white);border-radius:8px;margin-bottom:12px;box-shadow:var(--shadow);">
+        <div style="flex:1;text-align:center;padding:10px;font-size:13px;color:var(--text-hint);">血糖</div>
+        <div style="flex:1;text-align:center;padding:10px;font-size:13px;color:var(--text-hint);">饮食</div>
+        <div style="flex:1;text-align:center;padding:10px;font-size:13px;color:var(--text-hint);">用药</div>
+        <div style="flex:1;text-align:center;padding:10px;font-size:13px;color:var(--blue);font-weight:600;border-bottom:2px solid var(--blue);">问卷</div>
+      </div>
+
+      <div class="overview-card">
+        <div class="overview-title">📋 最近评估概览</div>
+        <div class="overview-row">
+          <div class="overview-name">血糖管理</div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div class="overview-score green">35/49 (71%)</div>
+            <div class="overview-change up">↑7</div>
+          </div>
+        </div>
+        <div class="overview-row">
+          <div class="overview-name">饮食管理</div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div class="overview-score blue">28/36 (78%)</div>
+            <div class="overview-change up">↑3</div>
+          </div>
+        </div>
+        <div class="overview-row">
+          <div class="overview-name">用药依从</div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div class="overview-score blue">30/35 (86%)</div>
+            <div class="overview-change same">→</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-full" style="margin-bottom:16px;">+ 发送新问卷</button>
+
+      <div class="section-header">
+        <div class="section-title">问卷记录</div>
+      </div>
+
+      <div class="assign-card">
+        <div class="assign-header">
+          <div class="assign-title">📊 血糖自我管理评估</div>
+          <div class="status-badge completed">✓ 已完成</div>
+        </div>
+        <div class="assign-date">35/49 · 2026-03-13</div>
+        <div style="display:flex;justify-content:flex-end;">
+          <button class="action-btn primary">查看结果</button>
+        </div>
+      </div>
+
+      <div class="assign-card">
+        <div class="assign-header">
+          <div class="assign-title">🍱 饮食管理评估</div>
+          <div class="status-badge completed">✓ 已完成</div>
+        </div>
+        <div class="assign-date">28/36 · 2026-03-10</div>
+        <div style="display:flex;justify-content:flex-end;">
+          <button class="action-btn primary">查看结果</button>
+        </div>
+      </div>
+
+      <div class="assign-card">
+        <div class="assign-header">
+          <div class="assign-title">💊 用药依从性评估</div>
+          <div class="status-badge pending">⏳ 待填写</div>
+        </div>
+        <div class="assign-date">截止 2026-03-20</div>
+        <div class="assign-actions">
+          <button class="action-btn">提醒</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- ==================== 患者端 ==================== -->
+<div class="role-tabs" style="margin-top:40px;">
+  <div class="role-tab active-patient">🧑 患者端</div>
+</div>
+
+<div class="screens-container">
+
+<!-- Screen 7: 患者端消息-问卷通知 -->
+<div class="screen-wrapper">
+  <div class="screen-label">7. 消息中心 — 问卷通知</div>
+  <div class="phone-frame">
+    <div class="status-bar">16:12</div>
+    <div class="nav-bar">
+      <div class="nav-back"></div>
+      <div class="nav-title">消息</div>
+    </div>
+    <div class="content">
+      <div class="notif-card">
+        <div class="notif-title">📋 新问卷</div>
+        <div class="notif-body">
+          <strong>李医生</strong> 邀请您填写<br>
+          「血糖自我管理评估」
+        </div>
+        <div style="font-size:12px;color:var(--text-hint);margin-bottom:8px;font-style:italic;">
+          "请您填写本周的血糖管理评估问卷，帮助我了解您近期的控糖情况。"
+        </div>
+        <div class="notif-footer">
+          <div class="notif-time">截止 2026-03-20 · 10题 · 约5分钟</div>
+          <div class="notif-btn">立即填写 ›</div>
+        </div>
+      </div>
+
+      <div class="notif-card result">
+        <div class="notif-title">📊 问卷结果</div>
+        <div class="notif-body">
+          <strong>李医生</strong> 已查看您的<br>
+          「饮食管理评估」并添加了批注
+        </div>
+        <div class="notif-footer">
+          <div class="notif-time">2026-03-11 14:30</div>
+          <div class="notif-btn green">查看批注 ›</div>
+        </div>
+      </div>
+
+      <div style="height:12px;"></div>
+
+      <!-- Regular chat conversations -->
+      <div class="card" style="display:flex;align-items:center;gap:12px;">
+        <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#60A5FA,#3B82F6);display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;flex-shrink:0;">👨‍⚕️</div>
+        <div style="flex:1;">
+          <div style="display:flex;justify-content:space-between;">
+            <div style="font-size:14px;font-weight:600;">李医生</div>
+            <div style="font-size:11px;color:var(--text-hint);">10:30</div>
+          </div>
+          <div style="font-size:13px;color:var(--text-hint);margin-top:2px;">最近血糖控制得不错，继续保持</div>
+        </div>
+      </div>
+
+      <div class="card" style="display:flex;align-items:center;gap:12px;">
+        <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#7C3AED);display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;flex-shrink:0;">👩‍⚕️</div>
+        <div style="flex:1;">
+          <div style="display:flex;justify-content:space-between;">
+            <div style="font-size:14px;font-weight:600;">王医生</div>
+            <div style="font-size:11px;color:var(--text-hint);">昨天</div>
+          </div>
+          <div style="font-size:13px;color:var(--text-hint);margin-top:2px;">下周来复诊一下</div>
+        </div>
+      </div>
+    </div>
+    <div class="tab-bar-inner">
+      <div class="tab-item"><div class="tab-icon">🏠</div>首页</div>
+      <div class="tab-item"><div class="tab-icon">📋</div>记录</div>
+      <div class="tab-item"><div class="tab-icon">🌐</div>社区</div>
+      <div class="tab-item active"><div class="tab-icon">💬</div>消息</div>
+      <div class="tab-item"><div class="tab-icon">👤</div>我的</div>
+    </div>
+  </div>
+</div>
+
+<!-- Screen 8: 患者端-我的问卷 -->
+<div class="screen-wrapper">
+  <div class="screen-label">8. 我的问卷 — 待填写/已完成</div>
+  <div class="phone-frame">
+    <div class="status-bar">16:12</div>
+    <div class="nav-bar">
+      <div class="nav-back">‹</div>
+      <div class="nav-title">我的问卷</div>
+    </div>
+    <div class="content">
+      <div class="segment-tabs">
+        <div class="segment-tab" style="background:var(--primary);color:#fff;font-weight:600;">待填写 (2)</div>
+        <div class="segment-tab">已完成</div>
+      </div>
+
+      <div class="tpl-card" style="border-left:4px solid var(--blue);">
+        <div class="tpl-icon" style="background:var(--blue-light);">📊</div>
+        <div class="tpl-info">
+          <div class="tpl-title">血糖自我管理评估</div>
+          <div class="tpl-desc">
+            来自：<strong>李医生</strong><br>
+            <span style="font-style:italic;">"请您填写本周的血糖管理评估问卷..."</span>
+          </div>
+          <div class="tpl-meta">
+            <div class="tpl-tags">
+              <div class="tpl-tag">10题</div>
+              <div class="tpl-tag">约5分钟</div>
+              <div class="tpl-tag" style="color:var(--orange);">截止 03-20</div>
+            </div>
+            <button class="tpl-btn green">去填写</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tpl-card" style="border-left:4px solid var(--blue);">
+        <div class="tpl-icon" style="background:#FFF8E1;">🧠</div>
+        <div class="tpl-info">
+          <div class="tpl-title">心理状态评估</div>
+          <div class="tpl-desc">
+            来自：<strong>王医生</strong><br>
+            <span style="font-style:italic;">"最近想了解一下您的心理状况..."</span>
+          </div>
+          <div class="tpl-meta">
+            <div class="tpl-tags">
+              <div class="tpl-tag">10题</div>
+              <div class="tpl-tag">约5分钟</div>
+              <div class="tpl-tag" style="color:var(--primary);">截止 03-25</div>
+            </div>
+            <button class="tpl-btn green">去填写</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align:center;color:var(--text-hint);font-size:13px;margin-top:16px;">暂无更多待填问卷</div>
+    </div>
+    <div class="tab-bar-inner">
+      <div class="tab-item"><div class="tab-icon">🏠</div>首页</div>
+      <div class="tab-item"><div class="tab-icon">📋</div>记录</div>
+      <div class="tab-item"><div class="tab-icon">🌐</div>社区</div>
+      <div class="tab-item"><div class="tab-icon">💬</div>消息</div>
+      <div class="tab-item active"><div class="tab-icon">👤</div>我的</div>
+    </div>
+  </div>
+</div>
+
+<!-- Screen 9: 填写问卷-单选题 -->
+<div class="screen-wrapper">
+  <div class="screen-label">9. 填写问卷 — 单选题</div>
+  <div class="phone-frame">
+    <div class="status-bar">16:12</div>
+    <div class="nav-bar">
+      <div class="nav-back">‹</div>
+      <div class="nav-title" style="font-size:14px;">血糖自我管理评估</div>
+      <div class="nav-action" style="font-size:13px;color:var(--text-hint);">1/10</div>
+    </div>
+    <div class="content" style="padding:16px 20px;">
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:10%;"></div>
+      </div>
+
+      <div class="q-number">Q1</div>
+      <div class="q-title">过去一周，您进行血糖监测的天数是？</div>
+
+      <div class="q-options">
+        <div class="q-option">
+          <div class="q-radio"><div class="q-radio-inner"></div></div>
+          0天
+        </div>
+        <div class="q-option">
+          <div class="q-radio"><div class="q-radio-inner"></div></div>
+          1天
+        </div>
+        <div class="q-option">
+          <div class="q-radio"><div class="q-radio-inner"></div></div>
+          2天
+        </div>
+        <div class="q-option">
+          <div class="q-radio"><div class="q-radio-inner"></div></div>
+          3天
+        </div>
+        <div class="q-option">
+          <div class="q-radio"><div class="q-radio-inner"></div></div>
+          4天
+        </div>
+        <div class="q-option selected">
+          <div class="q-radio"><div class="q-radio-inner"></div></div>
+          5天
+        </div>
+        <div class="q-option">
+          <div class="q-radio"><div class="q-radio-inner"></div></div>
+          6天
+        </div>
+        <div class="q-option">
+          <div class="q-radio"><div class="q-radio-inner"></div></div>
+          7天
+        </div>
+      </div>
+    </div>
+    <div class="bottom-btns">
+      <button class="btn-secondary" style="opacity:0.4;">上一题</button>
+      <button class="btn-primary green">下一题</button>
+    </div>
+  </div>
+</div>
+
+<!-- Screen 10: 填写问卷-评分题 -->
+<div class="screen-wrapper">
+  <div class="screen-label">10. 填写问卷 — 评分题</div>
+  <div class="phone-frame">
+    <div class="status-bar">16:12</div>
+    <div class="nav-bar">
+      <div class="nav-back">‹</div>
+      <div class="nav-title" style="font-size:14px;">血糖自我管理评估</div>
+      <div class="nav-action" style="font-size:13px;color:var(--text-hint);">6/10</div>
+    </div>
+    <div class="content" style="padding:16px 20px;">
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:60%;"></div>
+      </div>
+
+      <div class="q-number">Q6</div>
+      <div class="q-title">您对自己血糖控制目标的了解程度？</div>
+
+      <div style="margin-top:32px;">
+        <div class="rating-row">
+          <div class="rating-dot">1</div>
+          <div class="rating-dot">2</div>
+          <div class="rating-dot">3</div>
+          <div class="rating-dot selected">4</div>
+          <div class="rating-dot">5</div>
+        </div>
+        <div class="rating-labels">
+          <div class="rating-label-text">完全不了解</div>
+          <div class="rating-label-text">非常了解</div>
+        </div>
+      </div>
+
+      <div style="margin-top:40px;">
+        <div class="q-number">Q7</div>
+        <div class="q-title">过去一个月，您出现低血糖症状的次数？</div>
+        <div class="q-options">
+          <div class="q-option">
+            <div class="q-radio"><div class="q-radio-inner"></div></div>
+            0次
+          </div>
+          <div class="q-option selected">
+            <div class="q-radio"><div class="q-radio-inner"></div></div>
+            1-2次
+          </div>
+          <div class="q-option">
+            <div class="q-radio"><div class="q-radio-inner"></div></div>
+            3-5次
+          </div>
+          <div class="q-option">
+            <div class="q-radio"><div class="q-radio-inner"></div></div>
+            6-10次
+          </div>
+          <div class="q-option">
+            <div class="q-radio"><div class="q-radio-inner"></div></div>
+            10次以上
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-btns">
+      <button class="btn-secondary">上一题</button>
+      <button class="btn-primary green">下一题</button>
+    </div>
+  </div>
+</div>
+
+<!-- Screen 11: 填写问卷-多选+文本 -->
+<div class="screen-wrapper">
+  <div class="screen-label">11. 填写问卷 — 多选题 + 文本题</div>
+  <div class="phone-frame">
+    <div class="status-bar">16:12</div>
+    <div class="nav-bar">
+      <div class="nav-back">‹</div>
+      <div class="nav-title" style="font-size:14px;">血糖自我管理评估</div>
+      <div class="nav-action" style="font-size:13px;color:var(--text-hint);">9/10</div>
+    </div>
+    <div class="content" style="padding:16px 20px;">
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:90%;"></div>
+      </div>
+
+      <div class="q-number">Q9</div>
+      <div class="q-title">您在血糖监测中遇到的最大困难是什么？<span style="color:var(--text-hint);font-size:13px;font-weight:400;">（多选）</span></div>
+
+      <div class="q-options">
+        <div class="q-option selected">
+          <div class="q-checkbox">✓</div>
+          忘记测量
+        </div>
+        <div class="q-option">
+          <div class="q-checkbox"></div>
+          测试疼痛
+        </div>
+        <div class="q-option selected">
+          <div class="q-checkbox">✓</div>
+          试纸费用高
+        </div>
+        <div class="q-option">
+          <div class="q-checkbox"></div>
+          不知道何时测
+        </div>
+        <div class="q-option">
+          <div class="q-checkbox"></div>
+          看不懂结果
+        </div>
+        <div class="q-option">
+          <div class="q-checkbox"></div>
+          其他
+        </div>
+      </div>
+
+      <div style="margin-top:24px;">
+        <div class="q-number">Q10</div>
+        <div class="q-title">您希望医生在血糖管理方面给您什么帮助？</div>
+        <textarea class="form-textarea" placeholder="请描述您的需求..." style="min-height:80px;">希望能推荐性价比高的血糖仪和试纸</textarea>
+        <div class="char-count">18/200</div>
+      </div>
+    </div>
+    <div class="bottom-btns">
+      <button class="btn-secondary">上一题</button>
+      <button class="btn-primary green">下一题</button>
+    </div>
+  </div>
+</div>
+
+<!-- Screen 12: 提交确认 -->
+<div class="screen-wrapper">
+  <div class="screen-label">12. 提交确认</div>
+  <div class="phone-frame">
+    <div class="status-bar">16:12</div>
+    <div class="nav-bar">
+      <div class="nav-back">‹</div>
+      <div class="nav-title" style="font-size:14px;">血糖自我管理评估</div>
+      <div class="nav-action" style="font-size:13px;color:var(--text-hint);">10/10</div>
+    </div>
+    <div class="content" style="padding:16px 20px;text-align:center;">
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:100%;"></div>
+      </div>
+
+      <div class="confirm-icon">✅</div>
+      <div class="confirm-text">已全部作答</div>
+      <div class="confirm-sub">您已完成全部 10 道题目<br>确认提交后不可修改</div>
+
+      <div class="card" style="text-align:left;">
+        <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:10px;">作答概览</div>
+        <div style="display:flex;justify-content:space-around;margin-bottom:8px;">
+          <div style="text-align:center;">
+            <div style="font-size:24px;font-weight:700;color:var(--primary);">10</div>
+            <div style="font-size:11px;color:var(--text-hint);">已作答</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:24px;font-weight:700;color:var(--text-hint);">0</div>
+            <div style="font-size:11px;color:var(--text-hint);">未作答</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:24px;font-weight:700;color:var(--text);">3:12</div>
+            <div style="font-size:11px;color:var(--text-hint);">用时</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-full" style="background:var(--white);color:var(--blue);border:1px solid var(--blue);">检查答案</button>
+      <button class="btn-full green">确认提交</button>
+    </div>
+  </div>
+</div>
+
+<!-- Screen 13: 患者端-问卷结果 -->
+<div class="screen-wrapper">
+  <div class="screen-label">13. 问卷结果（患者视角）</div>
+  <div class="phone-frame">
+    <div class="status-bar">16:12</div>
+    <div class="nav-bar">
+      <div class="nav-back">‹</div>
+      <div class="nav-title">问卷结果</div>
+    </div>
+    <div class="content">
+      <div style="text-align:center;margin-bottom:4px;">
+        <div style="font-size:15px;font-weight:600;color:var(--text);">📊 血糖自我管理评估</div>
+        <div style="font-size:12px;color:var(--text-hint);margin-top:4px;">提交于 2026-03-13 15:30</div>
+      </div>
+
+      <div class="score-circle green">
+        <div class="score-value">35</div>
+        <div class="score-total">/49</div>
+      </div>
+      <div class="score-level" style="color:var(--blue);">71.4% · 良好</div>
+
+      <div class="card">
+        <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px;">维度得分</div>
+        <div class="dim-item">
+          <div class="dim-label">血糖监测</div>
+          <div class="dim-bar-bg"><div class="dim-bar-fill blue" style="width:76%;"></div></div>
+          <div class="dim-score">19</div>
+        </div>
+        <div class="dim-item">
+          <div class="dim-label">自我认知</div>
+          <div class="dim-bar-bg"><div class="dim-bar-fill green" style="width:80%;"></div></div>
+          <div class="dim-score">4</div>
+        </div>
+        <div class="dim-item">
+          <div class="dim-label">行为管理</div>
+          <div class="dim-bar-bg"><div class="dim-bar-fill orange" style="width:60%;"></div></div>
+          <div class="dim-score">12</div>
+        </div>
+      </div>
+
+      <div class="card" style="background:var(--bg);">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px;">📊 评分等级说明</div>
+        <div style="font-size:12px;color:var(--text-secondary);line-height:2;">
+          <div><span style="color:var(--primary);font-weight:600;">≥80% 优秀</span> — 管理非常好，继续保持</div>
+          <div><span style="color:var(--blue);font-weight:600;">60-79% 良好</span> — 总体不错，仍有提升空间</div>
+          <div><span style="color:var(--orange);font-weight:600;">40-59% 一般</span> — 需要改善部分习惯</div>
+          <div><span style="color:var(--red);font-weight:600;">&lt;40% 较差</span> — 建议加强管理，多与医生沟通</div>
+        </div>
+      </div>
+
+      <div class="doctor-note">
+        <div class="note-header">
+          <div class="note-avatar">👨‍⚕️</div>
+          <div class="note-name">李医生</div>
+          <div class="note-date">2026-03-14 09:30</div>
+        </div>
+        <div class="note-content">
+          血糖监测频率还需要提高，建议每天至少测3次。试纸费用方面可以考虑使用平台推荐的高性价比血糖仪。饮食方面建议学习碳水化合物计数方法。总体在进步，继续加油！💪
+        </div>
+      </div>
+
+      <button class="btn-full" style="background:var(--white);color:var(--text-secondary);border:1px solid var(--border);margin-top:12px;">查看我的答案</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div style="color:#555;font-size:12px;text-align:center;margin-top:40px;padding-bottom:20px;">
+  雷檬云 LeiMengYun · 问卷管理模块 UI 原型设计 · 2026-03-13
+</div>
+
+</body>
+</html>
