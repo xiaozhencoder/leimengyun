@@ -26,19 +26,19 @@
             class="assignment-card"
           >
             <div class="card-header">
-              <span class="template-title">{{ item.template?.title || '问卷' }}</span>
+              <span class="template-title">{{ item.templateTitle || '问卷' }}</span>
               <span v-if="item.deadline" class="deadline">
                 截止 {{ formatDate(item.deadline) }}
               </span>
             </div>
             <div class="card-meta">
-              <span class="doctor-name">👨‍⚕️ {{ item.doctor?.name || '医生' }}</span>
+              <span class="doctor-name">👨‍⚕️ {{ item.doctorName || '医生' }}</span>
               <span v-if="item.message" class="message-preview">{{ item.message }}</span>
             </div>
             <div class="card-info">
-              <span>{{ item.template?.questionCount || 0 }} 题</span>
-              <span v-if="item.template?.estimatedMinutes">
-                · 约 {{ item.template.estimatedMinutes }} 分钟
+              <span>{{ item.questionCount || 0 }} 题</span>
+              <span v-if="item.estimatedTime">
+                · 约 {{ item.estimatedTime }} 分钟
               </span>
             </div>
             <van-button
@@ -61,18 +61,18 @@
             @click="$router.push('/questionnaire/result/' + item.id)"
           >
             <div class="card-header">
-              <span class="template-title">{{ item.template?.title || '问卷' }}</span>
+              <span class="template-title">{{ item.templateTitle || '问卷' }}</span>
               <van-tag v-if="item.hasNote" type="warning" size="medium">有批注</van-tag>
             </div>
             <div class="card-score">
-              <span class="score-text">{{ item.score ?? '--' }}</span>
-              <span class="score-max">/ {{ item.maxScore ?? '--' }}</span>
+              <span class="score-text">{{ item.totalScore ?? '--' }}</span>
+              <span class="score-max">/ {{ item.templateTotalScore ?? '--' }}</span>
               <span
-                v-if="item.score != null && item.maxScore"
+                v-if="item.totalScore != null && item.templateTotalScore"
                 class="score-percent"
-                :style="{ color: getScoreColor(item.score / item.maxScore * 100) }"
+                :style="{ color: getScoreColor(item.totalScore / item.templateTotalScore * 100) }"
               >
-                {{ Math.round(item.score / item.maxScore * 100) }}%
+                {{ Math.round(item.totalScore / item.templateTotalScore * 100) }}%
               </span>
             </div>
             <div class="card-date">
