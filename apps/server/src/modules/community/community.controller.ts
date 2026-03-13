@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Param, Request, Query, UseGuards } from '@nestjs/common'
+import { Controller, Get, Post, Put, Delete, Param, Request, Query, Body, UseGuards } from '@nestjs/common'
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { CommunityService } from './community.service'
+import { CreatePostDto } from './dto/create-post.dto'
 import { QueryPostDto } from './dto/query-post.dto'
 
 @ApiTags('社区')
@@ -29,6 +30,46 @@ export class CommunityController {
   @ApiOperation({ summary: '帖子信息流' })
   async getPosts(@Request() req, @Query() query: QueryPostDto) {
     return this.communityService.getPosts(req.user.id, query)
+  }
+
+  @Post('posts')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '发布帖子' })
+  async createPost(@Request() req, @Body() dto: CreatePostDto) {
+    return this.communityService.createPost(req.user.id, dto)
+  }
+
+  @Get('posts/my')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '我的帖子' })
+  async getMyPosts(@Request() req, @Query() query: QueryPostDto) {
+    return this.communityService.getMyPosts(req.user.id, query)
+  }
+
+  @Get('posts/collected')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '我的收藏' })
+  async getCollectedPosts(@Request() req, @Query() query: QueryPostDto) {
+    return this.communityService.getCollectedPosts(req.user.id, query)
+  }
+
+  @Put('posts/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '编辑帖子' })
+  async updatePost(@Request() req, @Param('id') id: string, @Body() dto: CreatePostDto) {
+    return this.communityService.updatePost(req.user.id, id, dto)
+  }
+
+  @Delete('posts/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '删除帖子' })
+  async deletePost(@Request() req, @Param('id') id: string) {
+    return this.communityService.deletePost(req.user.id, id)
   }
 
   @Get('posts/:id')
