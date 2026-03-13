@@ -23,7 +23,7 @@
       <van-cell title="通知设置" icon="bell" is-link />
     </van-cell-group>
     <van-cell-group inset style="margin-top: 12px">
-      <van-cell title="设置" icon="setting-o" is-link />
+      <van-cell title="设置" icon="setting-o" is-link to="/settings" />
       <van-cell title="帮助与反馈" icon="question-o" is-link />
       <van-cell title="关于雷檬云" icon="info-o" is-link />
     </van-cell-group>

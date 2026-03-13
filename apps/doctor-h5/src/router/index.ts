@@ -47,6 +47,12 @@ const routes = [
     component: () => import('@/views/admin/PendingDoctorsPage.vue'),
     meta: { auth: true, adminOnly: true },
   },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: () => import('@/views/profile/SettingsPage.vue'),
+    meta: { auth: true },
+  },
 ]
 
 const router = createRouter({

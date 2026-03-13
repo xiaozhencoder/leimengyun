@@ -83,6 +83,18 @@ const routes = [
     name: 'RoleSelect',
     component: () => import('@/views/auth/RoleSelectPage.vue'),
   },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: () => import('@/views/profile/SettingsPage.vue'),
+    meta: { auth: true },
+  },
+  {
+    path: '/health-report',
+    name: 'HealthReport',
+    component: () => import('@/views/profile/HealthReportPage.vue'),
+    meta: { auth: true },
+  },
 ]
 
 const router = createRouter({
