@@ -41,7 +41,8 @@ export class QuestionnaireService {
       where: { id: doctorUserId },
       include: { doctorProfile: true },
     })
-    if (!doctor || (doctor.role !== 'DOCTOR' && !doctor.doctorProfile)) {
+    const isDoctorOrAdmin = doctor?.role === 'DOCTOR' || doctor?.role === 'ADMIN' || !!doctor?.doctorProfile
+    if (!doctor || !isDoctorOrAdmin) {
       throw new ForbiddenException('仅医生可发送问卷')
     }
 
