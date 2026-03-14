@@ -104,7 +104,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { showSuccessToast, showDialog } from 'vant'
+import { showToast, showSuccessToast, showDialog } from 'vant'
 import {
   getTemplates,
   getSentAssignments,
@@ -200,7 +200,7 @@ function formatDate(dateStr: string) {
 }
 
 function handleRemind(_item: any) {
-  showSuccessToast('已发送提醒')
+  showToast('已发送提醒')
 }
 
 async function handleCancel(item: any) {
@@ -211,7 +211,7 @@ async function handleCancel(item: any) {
       showCancelButton: true,
     })
     await cancelAssignment(item.id)
-    showSuccessToast('已取消')
+    showToast('已取消')
     item.status = 'CANCELLED'
   } catch {
     // user cancelled dialog

@@ -95,7 +95,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { showSuccessToast, showFailToast } from 'vant'
+import { showToast, showFailToast } from 'vant'
 import { getAssignmentResult, addDoctorNote } from '@/api/questionnaire'
 
 const router = useRouter()
@@ -117,7 +117,7 @@ async function handleSaveNote() {
   noteSaving.value = true
   try {
     await addDoctorNote(id, doctorNote.value)
-    showSuccessToast('批注已保存')
+    showToast('批注已保存')
   } catch {
     showFailToast('保存失败')
   } finally {

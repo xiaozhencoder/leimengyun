@@ -82,7 +82,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { showSuccessToast, showFailToast } from 'vant'
+import { showToast, showFailToast } from 'vant'
 import { getTemplateById, createAssignments, getMyPatients } from '@/api/questionnaire'
 
 const router = useRouter()
@@ -175,7 +175,7 @@ async function handleSubmit() {
       message: message.value || undefined,
     }) as any
     if (res?.successCount > 0) {
-      showSuccessToast(`成功发送给 ${res.successCount} 位患者`)
+      showToast(`成功发送给 ${res.successCount} 位患者`)
       setTimeout(() => router.push('/questionnaire'), 800)
     } else if (res?.errors?.length > 0) {
       showFailToast(res.errors[0])
