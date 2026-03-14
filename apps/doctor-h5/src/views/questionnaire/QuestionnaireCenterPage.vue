@@ -46,12 +46,14 @@
                 <van-tag plain color="#999" size="medium">约{{ tpl.estimatedMinutes || 5 }}分钟</van-tag>
               </div>
             </div>
-            <van-button
-              type="primary"
-              size="small"
-              class="template-card__send"
-              @click="router.push(`/questionnaire/send?templateId=${tpl.id}`)"
-            >发送</van-button>
+            <div class="template-card__actions">
+              <span class="template-card__preview" @click.stop="router.push(`/questionnaire/preview/${tpl.id}`)">预览</span>
+              <van-button
+                type="primary"
+                size="small"
+                @click="router.push(`/questionnaire/send?templateId=${tpl.id}`)"
+              >发送</van-button>
+            </div>
           </div>
         </div>
       </van-tab>
@@ -370,10 +372,20 @@ onMounted(() => {
   margin-top: 8px;
 }
 
-.template-card__send {
+.template-card__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
   flex-shrink: 0;
   align-self: center;
   margin-left: 10px;
+}
+
+.template-card__preview {
+  font-size: 12px;
+  color: #3B82F6;
+  cursor: pointer;
 }
 
 .assignment-list {

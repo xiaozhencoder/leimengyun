@@ -17,10 +17,11 @@
       </div>
 
       <div class="section-title">选择患者</div>
-      <van-empty v-if="patients.length === 0" description="暂无患者" />
+      <van-field v-model="patientSearch" placeholder="搜索患者..." clearable class="patient-search" />
+      <van-empty v-if="filteredPatients.length === 0" description="暂无患者" />
       <div v-else class="patient-list">
         <div
-          v-for="p in patients"
+          v-for="p in filteredPatients"
           :key="p.id"
           class="patient-item"
           @click="togglePatient(p.id)"
@@ -51,6 +52,7 @@
           v-model="datePickerValue"
           title="选择截止日期"
           :min-date="minDate"
+          :max-date="maxDate"
           @confirm="onDateConfirm"
           @cancel="showDatePicker = false"
         />
@@ -80,7 +82,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { showSuccessToast, showFailToast } from 'vant'
 import { getTemplateById, createAssignments, getMyPatients } from '@/api/questionnaire'
@@ -113,10 +115,22 @@ const selectedPatients = ref<string[]>([])
 const showDatePicker = ref(false)
 const message = ref('')
 const submitting = ref(false)
+const patientSearch = ref('')
+
+const filteredPatients = computed(() => {
+  if (!patientSearch.value) return patients.value
+  const keyword = patientSearch.value.toLowerCase()
+  return patients.value.filter((p: any) => {
+    const name = (p.realName || p.phone || '').toLowerCase()
+    return name.includes(keyword)
+  })
+})
 
 const now = new Date()
 const defaultDeadline = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
-const minDate = new Date()
+const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+const minDate = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate())
+const maxDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
 
 const datePickerValue = ref([
   String(defaultDeadline.getFullYear()),
@@ -152,6 +166,18 @@ function onDateConfirm({ selectedValues }: { selectedValues: string[] }) {
 
 async function handleSubmit() {
   if (selectedPatients.value.length === 0) return
+
+  if (deadlineDisplay.value) {
+    const deadlineDate = new Date(deadlineDisplay.value)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const diffDays = Math.round((deadlineDate.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
+    if (diffDays < 1 || diffDays > 30) {
+      showFailToast('截止日期必须在1-30天内')
+      return
+    }
+  }
+
   submitting.value = true
   try {
     await createAssignments({
@@ -178,6 +204,14 @@ onMounted(async () => {
     }
     const pData = await getMyPatients()
     patients.value = (pData as any) || []
+
+    const preSelectedPatientId = route.query.patientId as string
+    if (preSelectedPatientId) {
+      const found = patients.value.find((p: any) => p.id === preSelectedPatientId)
+      if (found && !selectedPatients.value.includes(preSelectedPatientId)) {
+        selectedPatients.value.push(preSelectedPatientId)
+      }
+    }
   } catch {
     // ignore
   } finally {
@@ -292,6 +326,11 @@ onMounted(async () => {
   font-size: 12px;
   color: #999;
   margin-top: 2px;
+}
+
+.patient-search {
+  margin: 0 12px 8px;
+  border-radius: 8px;
 }
 
 .submit-area {

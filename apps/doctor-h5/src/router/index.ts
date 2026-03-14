@@ -115,6 +115,12 @@ const routes = [
     meta: { auth: true },
   },
   {
+    path: '/questionnaire/preview/:id',
+    name: 'TemplatePreview',
+    component: () => import('@/views/questionnaire/TemplatePreviewPage.vue'),
+    meta: { auth: true },
+  },
+  {
     path: '/questionnaire/result/:id',
     name: 'QuestionnaireResult',
     component: () => import('@/views/questionnaire/QuestionnaireResultPage.vue'),
