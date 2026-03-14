@@ -10,30 +10,31 @@
           <div class="template-info__title">{{ template.title }}</div>
           <div class="template-info__desc">{{ template.description }}</div>
           <div class="template-info__meta">
-            <van-tag plain type="primary" size="medium">{{ Array.isArray(template.questions) ? template.questions.length : 0 }}题</van-tag>
-            <van-tag plain color="#999" size="medium">约{{ template.estimatedTime || 5 }}分钟</van-tag>
+            <van-tag plain type="primary" size="medium">{{ template.questionCount || 0 }}题</van-tag>
+            <van-tag plain color="#999" size="medium">约{{ template.estimatedMinutes || 5 }}分钟</van-tag>
           </div>
         </div>
       </div>
 
       <div class="section-title">选择患者</div>
-      <van-empty v-if="patients.length === 0" description="暂无绑定患者" />
+      <van-field v-model="patientSearch" placeholder="搜索患者..." clearable class="patient-search" />
+      <van-empty v-if="filteredPatients.length === 0" description="暂无患者" />
       <div v-else class="patient-list">
         <div
-          v-for="p in patients"
-          :key="p.patientUserId"
+          v-for="p in filteredPatients"
+          :key="p.id"
           class="patient-item"
-          @click="togglePatient(p.patientUserId)"
+          @click="togglePatient(p.id)"
         >
           <van-checkbox
-            :model-value="selectedPatients.includes(p.patientUserId)"
+            :model-value="selectedPatients.includes(p.id)"
             @click.stop
-            @update:model-value="togglePatient(p.patientUserId)"
+            @update:model-value="togglePatient(p.id)"
           />
-          <div class="patient-item__avatar">{{ (p.nickname || '?')[0] }}</div>
+          <div class="patient-item__avatar">{{ (p.realName || p.phone || '?')[0] }}</div>
           <div class="patient-item__info">
-            <div class="patient-item__name">{{ p.nickname || '未设置昵称' }}</div>
-            <div class="patient-item__type">{{ diabetesTypeLabel(p.diabetesType) }} · {{ treatmentPlanLabel(p.treatmentPlan) }}</div>
+            <div class="patient-item__name">{{ p.realName || p.phone }}</div>
+            <div class="patient-item__type">{{ diabetesTypeLabel(p.diabetesType) }}</div>
           </div>
         </div>
       </div>
@@ -51,6 +52,7 @@
           v-model="datePickerValue"
           title="选择截止日期"
           :min-date="minDate"
+          :max-date="maxDate"
           @confirm="onDateConfirm"
           @cancel="showDatePicker = false"
         />
@@ -80,9 +82,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { showToast, showFailToast } from 'vant'
+import { showSuccessToast, showFailToast } from 'vant'
 import { getTemplateById, createAssignments, getMyPatients } from '@/api/questionnaire'
 
 const router = useRouter()
@@ -100,17 +102,10 @@ const CATEGORY_ICONS: Record<string, string> = {
 }
 
 const DIABETES_TYPE_LABELS: Record<string, string> = {
-  TYPE_1: '1型',
-  TYPE_2: '2型',
-  GESTATIONAL: '妊娠期',
-  OTHER: '其他',
-}
-
-const TREATMENT_PLAN_LABELS: Record<string, string> = {
-  CSII: '胰岛素泵',
-  MDI: '多次注射',
-  ORAL: '口服药物',
-  LIFESTYLE: '生活方式管理',
+  TYPE_1: '1型糖尿病',
+  TYPE_2: '2型糖尿病',
+  GESTATIONAL: '妊娠糖尿病',
+  OTHER: '其他类型',
 }
 
 const pageLoading = ref(true)
@@ -120,10 +115,22 @@ const selectedPatients = ref<string[]>([])
 const showDatePicker = ref(false)
 const message = ref('')
 const submitting = ref(false)
+const patientSearch = ref('')
+
+const filteredPatients = computed(() => {
+  if (!patientSearch.value) return patients.value
+  const keyword = patientSearch.value.toLowerCase()
+  return patients.value.filter((p: any) => {
+    const name = (p.realName || p.phone || '').toLowerCase()
+    return name.includes(keyword)
+  })
+})
 
 const now = new Date()
 const defaultDeadline = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
-const minDate = new Date()
+const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+const minDate = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate())
+const maxDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
 
 const datePickerValue = ref([
   String(defaultDeadline.getFullYear()),
@@ -140,10 +147,6 @@ function getCategoryIcon(category: string) {
 
 function diabetesTypeLabel(type: string) {
   return DIABETES_TYPE_LABELS[type] || ''
-}
-
-function treatmentPlanLabel(plan: string) {
-  return TREATMENT_PLAN_LABELS[plan] || ''
 }
 
 function togglePatient(id: string) {
@@ -163,28 +166,30 @@ function onDateConfirm({ selectedValues }: { selectedValues: string[] }) {
 
 async function handleSubmit() {
   if (selectedPatients.value.length === 0) return
+
+  if (deadlineDisplay.value) {
+    const deadlineDate = new Date(deadlineDisplay.value)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const diffDays = Math.round((deadlineDate.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
+    if (diffDays < 1 || diffDays > 30) {
+      showFailToast('截止日期必须在1-30天内')
+      return
+    }
+  }
+
   submitting.value = true
   try {
-    const deadlineISO = deadlineDisplay.value
-      ? new Date(deadlineDisplay.value + 'T23:59:59').toISOString()
-      : undefined
-    const res = await createAssignments({
+    await createAssignments({
       templateId: route.query.templateId as string,
       patientIds: selectedPatients.value,
-      deadline: deadlineISO as string,
+      deadline: deadlineDisplay.value,
       message: message.value || undefined,
-    }) as any
-    if (res?.successCount > 0) {
-      showToast(`成功发送给 ${res.successCount} 位患者`)
-      setTimeout(() => router.push('/questionnaire'), 800)
-    } else if (res?.errors?.length > 0) {
-      showFailToast(res.errors[0])
-    } else {
-      showFailToast('发送失败，请重试')
-    }
-  } catch (err: any) {
-    const msg = err?.response?.data?.message
-    showFailToast(Array.isArray(msg) ? msg[0] : (msg || '发送失败，请检查网络'))
+    })
+    showSuccessToast('发送成功')
+    router.push('/questionnaire')
+  } catch {
+    showFailToast('发送失败')
   } finally {
     submitting.value = false
   }
@@ -199,6 +204,14 @@ onMounted(async () => {
     }
     const pData = await getMyPatients()
     patients.value = (pData as any) || []
+
+    const preSelectedPatientId = route.query.patientId as string
+    if (preSelectedPatientId) {
+      const found = patients.value.find((p: any) => p.id === preSelectedPatientId)
+      if (found && !selectedPatients.value.includes(preSelectedPatientId)) {
+        selectedPatients.value.push(preSelectedPatientId)
+      }
+    }
   } catch {
     // ignore
   } finally {
@@ -313,6 +326,11 @@ onMounted(async () => {
   font-size: 12px;
   color: #999;
   margin-top: 2px;
+}
+
+.patient-search {
+  margin: 0 12px 8px;
+  border-radius: 8px;
 }
 
 .submit-area {

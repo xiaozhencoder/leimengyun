@@ -8,45 +8,92 @@
       <div class="result-header">
         <div class="result-header__title">{{ result.template?.title || '问卷' }}</div>
         <div class="result-header__info">
-          <span>{{ result.patient?.realName || '患者' }}</span>
-          <span>{{ formatDateTime(result.submittedAt) }}</span>
+          <span>{{ result.patientName || '患者' }}</span>
+          <span>{{ formatDateTime(result.response?.submittedAt) }}</span>
         </div>
       </div>
 
       <div class="score-section">
-        <div class="score-circle">
-          <div class="score-circle__value">{{ result.totalScore ?? '-' }}</div>
+        <div class="score-circle" :style="{ borderColor: levelColor }">
+          <div class="score-circle__value" :style="{ color: levelColor }">{{ result.response?.totalScore ?? '-' }}</div>
+          <div class="score-circle__max">/ {{ result.template?.totalScore ?? '-' }}</div>
           <div class="score-circle__label">总分</div>
         </div>
-        <div v-if="result.scoreLevel" class="score-level">{{ result.scoreLevel }}</div>
-        <div v-if="result.scorePercentage != null" class="score-percentage">
-          超过{{ result.scorePercentage }}%的用户
+        <div v-if="result.level" class="score-level" :style="{ color: levelColor }">{{ result.level.level }}</div>
+        <div v-if="result.level?.percentage != null" class="score-percentage">
+          超过{{ result.level.percentage }}%的用户
         </div>
+        <div v-if="result.level?.message" class="score-message">{{ result.level.message }}</div>
       </div>
 
-      <div v-if="result.dimensions && result.dimensions.length > 0" class="dimensions-section">
+      <div v-if="dimensions.length > 0" class="dimensions-section">
         <div class="section-title">各维度得分</div>
-        <div v-for="dim in result.dimensions" :key="dim.name" class="dimension-bar">
+        <div v-for="dim in dimensions" :key="dim.name" class="dimension-bar">
           <div class="dimension-bar__label">{{ dim.name }}</div>
           <div class="dimension-bar__track">
             <div
               class="dimension-bar__fill"
-              :style="{ width: (dim.score / dim.maxScore * 100) + '%' }"
+              :style="{ width: (dim.score / (result.template?.totalScore || 100) * 100) + '%' }"
             />
           </div>
-          <div class="dimension-bar__value">{{ dim.score }}/{{ dim.maxScore }}</div>
+          <div class="dimension-bar__value">{{ dim.score }}</div>
         </div>
       </div>
 
-      <div v-if="result.answers && result.answers.length > 0" class="answers-section">
+      <div v-if="trendData.length > 1" class="trend-section">
+        <div class="section-title">历史趋势</div>
+        <div class="trend-chart-wrapper">
+          <svg :viewBox="`0 0 ${trendWidth} ${trendHeight}`" class="trend-svg">
+            <line
+              v-for="(_, i) in trendData.slice(0, -1)"
+              :key="'line-' + i"
+              :x1="trendX(i)"
+              :y1="trendY(trendData[i].score)"
+              :x2="trendX(i + 1)"
+              :y2="trendY(trendData[i + 1].score)"
+              stroke="#3B82F6"
+              stroke-width="2"
+            />
+            <circle
+              v-for="(point, i) in trendData"
+              :key="'dot-' + i"
+              :cx="trendX(i)"
+              :cy="trendY(point.score)"
+              r="4"
+              fill="#3B82F6"
+            />
+            <text
+              v-for="(point, i) in trendData"
+              :key="'score-' + i"
+              :x="trendX(i)"
+              :y="trendY(point.score) - 10"
+              text-anchor="middle"
+              fill="#333"
+              font-size="11"
+              font-weight="600"
+            >{{ point.score }}</text>
+            <text
+              v-for="(point, i) in trendData"
+              :key="'date-' + i"
+              :x="trendX(i)"
+              :y="trendHeight - 4"
+              text-anchor="middle"
+              fill="#999"
+              font-size="9"
+            >{{ point.date }}</text>
+          </svg>
+        </div>
+      </div>
+
+      <div v-if="answerDetails.length > 0" class="answers-section">
         <div class="section-title">答题详情</div>
-        <div v-for="(answer, idx) in result.answers" :key="idx" class="answer-item">
+        <div v-for="(answer, idx) in answerDetails" :key="idx" class="answer-item">
           <div class="answer-item__question">
             <span class="answer-item__num">{{ idx + 1 }}.</span>
             {{ answer.questionText }}
           </div>
           <div class="answer-item__response">
-            <span class="answer-item__choice">{{ answer.selectedText || answer.answer }}</span>
+            <span class="answer-item__choice">{{ answer.selectedText }}</span>
             <span v-if="answer.score != null" class="answer-item__score">{{ answer.score }}分</span>
           </div>
         </div>
@@ -56,7 +103,7 @@
         <div class="section-title">健康数据</div>
         <div class="health-data-row">
           <div class="health-data-item">
-            <div class="health-data-item__value">{{ result.healthData.avgBloodSugar ?? '-' }}</div>
+            <div class="health-data-item__value">{{ result.healthData.avgValue ?? '-' }}</div>
             <div class="health-data-item__label">平均血糖</div>
           </div>
           <div class="health-data-item">
@@ -64,7 +111,7 @@
             <div class="health-data-item__label">记录次数</div>
           </div>
           <div class="health-data-item">
-            <div class="health-data-item__value">{{ result.healthData.inRangeRate ?? '-' }}</div>
+            <div class="health-data-item__value">{{ result.healthData.inRangeRate != null ? result.healthData.inRangeRate + '%' : '-' }}</div>
             <div class="health-data-item__label">达标率</div>
           </div>
         </div>
@@ -72,6 +119,10 @@
 
       <div class="note-section">
         <div class="section-title">医生批注</div>
+        <div v-if="result.response?.doctorNote" class="existing-note">
+          <div class="existing-note__text">{{ result.response.doctorNote }}</div>
+          <div v-if="result.response.notedAt" class="existing-note__date">{{ formatDateTime(result.response.notedAt) }}</div>
+        </div>
         <van-field
           v-model="doctorNote"
           type="textarea"
@@ -93,10 +144,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { showToast, showFailToast } from 'vant'
-import { getAssignmentResult, addDoctorNote } from '@/api/questionnaire'
+import { getAssignmentResult, addDoctorNote, getPatientHistory } from '@/api/questionnaire'
 
 const router = useRouter()
 const route = useRoute()
@@ -105,6 +156,67 @@ const loading = ref(true)
 const result = ref<any>(null)
 const doctorNote = ref('')
 const noteSaving = ref(false)
+const historyData = ref<any[]>([])
+
+const trendWidth = 300
+const trendHeight = 140
+const trendPadding = { top: 24, bottom: 20, left: 20, right: 20 }
+
+const dimensions = computed(() => {
+  const scores = result.value?.response?.dimensionScores
+  if (!scores || typeof scores !== 'object') return []
+  return Object.entries(scores).map(([name, score]) => ({ name, score: score as number }))
+})
+
+const answerDetails = computed(() => {
+  const answers = result.value?.response?.answers
+  const questions = result.value?.template?.questions
+  if (!answers || !Array.isArray(answers)) return []
+  return answers.map((a: any) => {
+    const q = Array.isArray(questions) ? questions.find((qq: any) => qq.id === a.questionId) : null
+    let selectedText = a.value
+    if (q?.options && Array.isArray(q.options)) {
+      const opt = q.options.find((o: any) => o.value === a.value)
+      if (opt) selectedText = opt.label
+    }
+    return {
+      questionText: q?.title || a.questionId,
+      selectedText: String(selectedText),
+      score: a.score,
+    }
+  })
+})
+
+const trendData = computed(() => {
+  return historyData.value.map((item: any) => ({
+    score: item.totalScore,
+    date: item.submittedAt?.slice(5, 10) || '',
+  }))
+})
+
+const levelColor = computed(() => {
+  const level = result.value?.level?.level
+  if (!level) return '#1AAD6E'
+  if (level === '优秀' || level === '良好') return '#1AAD6E'
+  if (level === '一般' || level === '中等') return '#FFB020'
+  return '#FF4D4F'
+})
+
+function trendX(i: number) {
+  const count = trendData.value.length
+  if (count <= 1) return trendWidth / 2
+  const usable = trendWidth - trendPadding.left - trendPadding.right
+  return trendPadding.left + (i / (count - 1)) * usable
+}
+
+function trendY(score: number) {
+  const scores = trendData.value.map((d: any) => d.score)
+  const min = Math.min(...scores) - 5
+  const max = Math.max(...scores) + 5
+  const range = max - min || 1
+  const usable = trendHeight - trendPadding.top - trendPadding.bottom
+  return trendPadding.top + (1 - (score - min) / range) * usable
+}
 
 function formatDateTime(dateStr: string) {
   if (!dateStr) return ''
@@ -130,7 +242,22 @@ onMounted(async () => {
     const id = route.params.id as string
     const data = await getAssignmentResult(id)
     result.value = data
-    doctorNote.value = (data as any)?.doctorNote || ''
+    doctorNote.value = (data as any)?.response?.doctorNote || ''
+
+    const patientId = (data as any)?.patientUserId
+    const category = (data as any)?.template?.category
+    if (patientId) {
+      try {
+        const history = await getPatientHistory(patientId) as any
+        if (history?.history && Array.isArray(history.history)) {
+          historyData.value = category
+            ? history.history.filter((h: any) => h.category === category)
+            : history.history
+        }
+      } catch {
+        // ignore history error
+      }
+    }
   } catch {
     // ignore
   } finally {
@@ -202,21 +329,33 @@ onMounted(async () => {
   color: #1AAD6E;
 }
 
-.score-circle__label {
+.score-circle__max {
   font-size: 13px;
   color: #999;
+  margin-top: -4px;
+}
+
+.score-circle__label {
+  font-size: 12px;
+  color: #999;
+  margin-top: 2px;
 }
 
 .score-level {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
   margin-top: 12px;
 }
 
 .score-percentage {
   font-size: 13px;
   color: #999;
+  margin-top: 4px;
+}
+
+.score-message {
+  font-size: 13px;
+  color: #666;
   margin-top: 4px;
 }
 
@@ -273,6 +412,24 @@ onMounted(async () => {
   width: 50px;
   text-align: right;
   flex-shrink: 0;
+}
+
+.trend-section {
+  margin: 12px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 0 14px 14px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.trend-chart-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.trend-svg {
+  width: 100%;
+  height: auto;
 }
 
 .answers-section {
@@ -359,5 +516,24 @@ onMounted(async () => {
   border-radius: 12px;
   padding: 0 14px 16px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.existing-note {
+  background: #F7F8FA;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.existing-note__text {
+  font-size: 13px;
+  color: #333;
+  line-height: 1.5;
+}
+
+.existing-note__date {
+  font-size: 11px;
+  color: #999;
+  margin-top: 4px;
 }
 </style>
