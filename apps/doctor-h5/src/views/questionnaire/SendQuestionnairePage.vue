@@ -10,30 +10,30 @@
           <div class="template-info__title">{{ template.title }}</div>
           <div class="template-info__desc">{{ template.description }}</div>
           <div class="template-info__meta">
-            <van-tag plain type="primary" size="medium">{{ template.questionCount || 0 }}题</van-tag>
-            <van-tag plain color="#999" size="medium">约{{ template.estimatedMinutes || 5 }}分钟</van-tag>
+            <van-tag plain type="primary" size="medium">{{ Array.isArray(template.questions) ? template.questions.length : 0 }}题</van-tag>
+            <van-tag plain color="#999" size="medium">约{{ template.estimatedTime || 5 }}分钟</van-tag>
           </div>
         </div>
       </div>
 
       <div class="section-title">选择患者</div>
-      <van-empty v-if="patients.length === 0" description="暂无患者" />
+      <van-empty v-if="patients.length === 0" description="暂无绑定患者" />
       <div v-else class="patient-list">
         <div
           v-for="p in patients"
-          :key="p.id"
+          :key="p.patientUserId"
           class="patient-item"
-          @click="togglePatient(p.id)"
+          @click="togglePatient(p.patientUserId)"
         >
           <van-checkbox
-            :model-value="selectedPatients.includes(p.id)"
+            :model-value="selectedPatients.includes(p.patientUserId)"
             @click.stop
-            @update:model-value="togglePatient(p.id)"
+            @update:model-value="togglePatient(p.patientUserId)"
           />
-          <div class="patient-item__avatar">{{ (p.realName || p.phone || '?')[0] }}</div>
+          <div class="patient-item__avatar">{{ (p.nickname || '?')[0] }}</div>
           <div class="patient-item__info">
-            <div class="patient-item__name">{{ p.realName || p.phone }}</div>
-            <div class="patient-item__type">{{ diabetesTypeLabel(p.diabetesType) }}</div>
+            <div class="patient-item__name">{{ p.nickname || '未设置昵称' }}</div>
+            <div class="patient-item__type">{{ diabetesTypeLabel(p.diabetesType) }} · {{ treatmentPlanLabel(p.treatmentPlan) }}</div>
           </div>
         </div>
       </div>
@@ -100,10 +100,17 @@ const CATEGORY_ICONS: Record<string, string> = {
 }
 
 const DIABETES_TYPE_LABELS: Record<string, string> = {
-  TYPE_1: '1型糖尿病',
-  TYPE_2: '2型糖尿病',
-  GESTATIONAL: '妊娠糖尿病',
-  OTHER: '其他类型',
+  TYPE_1: '1型',
+  TYPE_2: '2型',
+  GESTATIONAL: '妊娠期',
+  OTHER: '其他',
+}
+
+const TREATMENT_PLAN_LABELS: Record<string, string> = {
+  CSII: '胰岛素泵',
+  MDI: '多次注射',
+  ORAL: '口服药物',
+  LIFESTYLE: '生活方式管理',
 }
 
 const pageLoading = ref(true)
@@ -133,6 +140,10 @@ function getCategoryIcon(category: string) {
 
 function diabetesTypeLabel(type: string) {
   return DIABETES_TYPE_LABELS[type] || ''
+}
+
+function treatmentPlanLabel(plan: string) {
+  return TREATMENT_PLAN_LABELS[plan] || ''
 }
 
 function togglePatient(id: string) {
