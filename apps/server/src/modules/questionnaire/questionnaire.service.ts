@@ -130,6 +130,7 @@ export class QuestionnaireService {
     return {
       list: list.map((a) => ({
         id: a.id,
+        templateId: a.templateId,
         templateTitle: a.template.title,
         templateCategory: a.template.category,
         templateTotalScore: a.template.totalScore,

@@ -165,16 +165,26 @@ async function handleSubmit() {
   if (selectedPatients.value.length === 0) return
   submitting.value = true
   try {
-    await createAssignments({
+    const deadlineISO = deadlineDisplay.value
+      ? new Date(deadlineDisplay.value + 'T23:59:59').toISOString()
+      : undefined
+    const res = await createAssignments({
       templateId: route.query.templateId as string,
       patientIds: selectedPatients.value,
-      deadline: deadlineDisplay.value,
+      deadline: deadlineISO as string,
       message: message.value || undefined,
-    })
-    showSuccessToast('发送成功')
-    router.push('/questionnaire')
-  } catch {
-    showFailToast('发送失败')
+    }) as any
+    if (res?.successCount > 0) {
+      showSuccessToast(`成功发送给 ${res.successCount} 位患者`)
+      setTimeout(() => router.push('/questionnaire'), 800)
+    } else if (res?.errors?.length > 0) {
+      showFailToast(res.errors[0])
+    } else {
+      showFailToast('发送失败，请重试')
+    }
+  } catch (err: any) {
+    const msg = err?.response?.data?.message
+    showFailToast(Array.isArray(msg) ? msg[0] : (msg || '发送失败，请检查网络'))
   } finally {
     submitting.value = false
   }

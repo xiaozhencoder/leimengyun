@@ -6,19 +6,19 @@
       <van-tab title="模板库">
         <div class="stats-row">
           <div class="stat-box">
-            <div class="stat-value">{{ stats.sent || 0 }}</div>
+            <div class="stat-value">{{ stats.totalSent || 0 }}</div>
             <div class="stat-label">已发送</div>
           </div>
           <div class="stat-box">
-            <div class="stat-value stat-value--orange">{{ stats.pending || 0 }}</div>
+            <div class="stat-value stat-value--orange">{{ stats.totalPending || 0 }}</div>
             <div class="stat-label">待填写</div>
           </div>
           <div class="stat-box">
-            <div class="stat-value stat-value--green">{{ stats.completed || 0 }}</div>
+            <div class="stat-value stat-value--green">{{ stats.totalCompleted || 0 }}</div>
             <div class="stat-label">已完成</div>
           </div>
           <div class="stat-box">
-            <div class="stat-value stat-value--blue">{{ stats.completionRate || '0%' }}</div>
+            <div class="stat-value stat-value--blue">{{ stats.completionRate || 0 }}%</div>
             <div class="stat-label">完成率</div>
           </div>
         </div>
@@ -43,7 +43,7 @@
               <div class="template-card__desc">{{ tpl.description }}</div>
               <div class="template-card__tags">
                 <van-tag plain type="primary" size="medium">{{ tpl.questionCount || 0 }}题</van-tag>
-                <van-tag plain color="#999" size="medium">约{{ tpl.estimatedMinutes || 5 }}分钟</van-tag>
+                <van-tag plain color="#999" size="medium">约{{ tpl.estimatedTime || 5 }}分钟</van-tag>
               </div>
             </div>
             <van-button
@@ -72,11 +72,11 @@
         <div v-else class="assignment-list">
           <div v-for="item in filteredAssignments" :key="item.id" class="assignment-card">
             <div class="assignment-card__header">
-              <span class="assignment-card__title">{{ item.template?.title || '问卷' }}</span>
+              <span class="assignment-card__title">{{ item.templateTitle || '问卷' }}</span>
               <van-tag :type="statusTagType(item.status)" size="medium">{{ statusLabel(item.status) }}</van-tag>
             </div>
             <div class="assignment-card__info">
-              <span>{{ item.patient?.realName || item.patient?.phone || '患者' }}</span>
+              <span>→ {{ item.patientName || '患者' }}</span>
               <span class="assignment-card__date">{{ formatDate(item.createdAt) }}</span>
             </div>
             <div v-if="item.status === 'COMPLETED' && item.totalScore != null" class="assignment-card__score">
@@ -242,8 +242,8 @@ async function loadTemplates() {
 async function loadAssignments() {
   assignmentsLoading.value = true
   try {
-    const data = await getSentAssignments()
-    assignments.value = (data as any) || []
+    const data = await getSentAssignments() as any
+    assignments.value = data?.list || []
   } catch {
     assignments.value = []
   } finally {
