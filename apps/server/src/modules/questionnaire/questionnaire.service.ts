@@ -37,8 +37,11 @@ export class QuestionnaireService {
   }
 
   async createAssignments(doctorUserId: string, dto: CreateAssignmentDto) {
-    const doctor = await this.prisma.user.findUnique({ where: { id: doctorUserId } })
-    if (!doctor || doctor.role !== 'DOCTOR') {
+    const doctor = await this.prisma.user.findUnique({
+      where: { id: doctorUserId },
+      include: { doctorProfile: true },
+    })
+    if (!doctor || (doctor.role !== 'DOCTOR' && !doctor.doctorProfile)) {
       throw new ForbiddenException('仅医生可发送问卷')
     }
 
