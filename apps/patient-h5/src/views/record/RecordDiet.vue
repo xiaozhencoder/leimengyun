@@ -38,6 +38,7 @@
         :max-count="1"
         accept="image/*"
         result-type="dataUrl"
+        :preview-options="{ closeable: true }"
       >
         <van-button icon="photograph" type="primary" plain size="small">拍照/选图</van-button>
       </van-uploader>
