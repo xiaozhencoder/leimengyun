@@ -174,14 +174,25 @@ const answerDetails = computed(() => {
   if (!answers || !Array.isArray(answers)) return []
   return answers.map((a: any) => {
     const q = Array.isArray(questions) ? questions.find((qq: any) => qq.id === a.questionId) : null
-    let selectedText = a.value
+    let selectedText: string
     if (q?.options && Array.isArray(q.options)) {
-      const opt = q.options.find((o: any) => o.value === a.value)
-      if (opt) selectedText = opt.label
+      if (Array.isArray(a.value)) {
+        selectedText = a.value
+          .map((v: string) => {
+            const opt = q.options.find((o: any) => o.value === v)
+            return opt?.label || v
+          })
+          .join('、')
+      } else {
+        const opt = q.options.find((o: any) => String(o.value) === String(a.value))
+        selectedText = opt?.label || String(a.value)
+      }
+    } else {
+      selectedText = Array.isArray(a.value) ? a.value.join('、') : String(a.value ?? '--')
     }
     return {
       questionText: q?.title || a.questionId,
-      selectedText: String(selectedText),
+      selectedText,
       score: a.score,
     }
   })

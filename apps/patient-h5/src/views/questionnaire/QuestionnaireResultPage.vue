@@ -76,7 +76,7 @@
             class="answer-item"
           >
             <div class="answer-q">{{ idx + 1 }}. {{ item.questionTitle }}</div>
-            <div class="answer-a">{{ formatAnswer(item.value) }}</div>
+            <div class="answer-a">{{ formatAnswer(item.value, item.question) }}</div>
           </div>
         </div>
       </div>
@@ -122,6 +122,7 @@ const answerList = computed(() => {
     return {
       questionTitle: q?.title || a.questionId,
       value: a.value,
+      question: q,
     }
   })
 })
@@ -157,9 +158,21 @@ function formatDate(dateStr: string) {
   return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`
 }
 
-function formatAnswer(value: any) {
-  if (Array.isArray(value)) return value.join('、')
-  return String(value ?? '--')
+function formatAnswer(value: any, question: any) {
+  if (!question?.options || !question.options.length) {
+    if (Array.isArray(value)) return value.join('、')
+    return String(value ?? '--')
+  }
+  if (Array.isArray(value)) {
+    return value
+      .map((v: string) => {
+        const opt = question.options.find((o: any) => o.value === v)
+        return opt?.label || v
+      })
+      .join('、')
+  }
+  const opt = question.options.find((o: any) => String(o.value) === String(value))
+  return opt?.label || String(value ?? '--')
 }
 
 function getDimColor(score: number, maxScore: number) {
