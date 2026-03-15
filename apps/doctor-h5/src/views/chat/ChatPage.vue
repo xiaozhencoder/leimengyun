@@ -157,7 +157,10 @@ function getBsLevelClass(value: number, measureTime?: string): string {
 }
 
 function previewImage(url: string) {
-  showImagePreview([url])
+  showImagePreview({
+    images: [url],
+    closeable: true,
+  })
 }
 
 async function onImageSelect(file: any) {

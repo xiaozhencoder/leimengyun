@@ -150,7 +150,10 @@ function parseBsCard(content: string): { value: number; time: string; measureTim
 }
 
 function previewImage(url: string) {
-  showImagePreview([url])
+  showImagePreview({
+    images: [url],
+    closeable: true,
+  })
 }
 
 async function onImageSelect(file: any) {
